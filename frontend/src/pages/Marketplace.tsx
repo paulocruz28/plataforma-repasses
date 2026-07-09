@@ -5,6 +5,15 @@ import type { Repasse } from '../services/api';
 import { RepasseCard } from '../components/RepasseCard';
 import { useToast } from '../components/Toast';
 
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
+};
+
 export const Marketplace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -307,8 +316,8 @@ export const Marketplace: React.FC = () => {
                   className="form-control" 
                   required 
                   value={leadTelefone} 
-                  onChange={(e) => setLeadTelefone(e.target.value)} 
-                  placeholder="Ex: (85) 99999-9999" 
+                  onChange={(e) => setLeadTelefone(formatPhone(e.target.value))} 
+                  placeholder="Ex: (85) 9 9999-9999" 
                 />
               </div>
               <div className="form-group">
