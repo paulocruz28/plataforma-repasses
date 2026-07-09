@@ -561,12 +561,170 @@ body {
   background-color: var(--bg-color);
 }
 
+/* ============================================================================
+   >>> RESPONSIVIDADE E ADAPTAÇÃO MOBILE
+   ============================================================================ */
+
+.contracts-layout {
+  display: flex;
+  gap: 30px;
+}
+
+.contract-form-panel {
+  flex: 1 1 50%;
+  padding: 30px;
+}
+
+.contract-preview-panel {
+  flex: 1 1 50%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.preview-content {
+  background-color: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  min-height: 400px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  overflow-y: auto;
+}
+
+[data-theme="light"] .preview-content {
+  background-color: #ffffff;
+}
+
 @media (max-width: 992px) {
   .login-left-panel {
     display: none;
   }
   .login-right-panel {
     padding: 40px 20px;
+  }
+  .contracts-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .contract-form-panel, .contract-preview-panel {
+    flex: 1 1 100%;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Header Global */
+  header {
+    height: auto !important;
+    flex-direction: column !important;
+    padding: 16px !important;
+    gap: 16px !important;
+    border-radius: 0 !important;
+    align-items: center !important;
+  }
+  header nav {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  /* Portfólio de Corretor */
+  .portfolio-header {
+    flex-direction: column !important;
+    padding: 20px !important;
+    margin: 20px 16px 0 !important;
+    text-align: center;
+    gap: 16px;
+  }
+  .portfolio-header .btn {
+    width: 100%;
+  }
+
+  /* Marketplace Filtros */
+  .filters-container {
+    margin: 0 16px 20px !important;
+    padding: 20px !important;
+  }
+  .filters-grid {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .filters-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .filters-actions .btn {
+    width: 100%;
+  }
+
+  /* Grid de Imóveis */
+  .repasses-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 16px;
+    margin-top: 20px;
+  }
+
+  /* Layout do Painel Admin */
+  .admin-layout {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    width: 100% !important;
+    border-radius: 0 !important;
+    padding: 20px 16px !important;
+    gap: 20px !important;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .admin-sidebar .sidebar-brand {
+    padding-bottom: 12px;
+    text-align: center;
+  }
+  .sidebar-menu {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    padding-bottom: 8px;
+    gap: 8px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar-menu-item {
+    padding: 10px 16px !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap;
+    width: auto !important;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+  .admin-main-content {
+    padding: 20px 16px !important;
+  }
+  
+  /* Formulários */
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .form-row .form-group {
+    margin-bottom: 16px;
+  }
+
+  /* Dashboard Métricas */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
