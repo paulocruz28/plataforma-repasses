@@ -54,6 +54,9 @@ export const AdminPanel: React.FC = () => {
   const [cProfissao, setCProfissao] = useState('');
   const [cEstadoCivil, setCEstadoCivil] = useState('Solteiro(a)');
   const [cEndereco, setCEndereco] = useState('');
+  const [cNumero, setCNumero] = useState('');
+  const [cBairroEndereco, setCBairroEndereco] = useState('');
+  const [cComplemento, setCComplemento] = useState('');
   const [certStatus, setCertStatus] = useState<'idle' | 'checking_sefin' | 'checking_onr' | 'success' | 'error'>('idle');
   const [sefinDetail, setSefinDetail] = useState('SEFIN (Prefeitura)');
   const [onrDetail, setOnrDetail] = useState('ONR (Cartórios)');
@@ -225,6 +228,14 @@ export const AdminPanel: React.FC = () => {
       return;
     }
 
+    const addressParts = [];
+    if (cEndereco.trim()) addressParts.push(cEndereco.trim());
+    if (cNumero.trim()) addressParts.push(`Nº ${cNumero.trim()}`);
+    if (cComplemento.trim()) addressParts.push(cComplemento.trim());
+    if (cBairroEndereco.trim()) addressParts.push(cBairroEndereco.trim());
+    
+    const enderecoCompleto = addressParts.join(', ');
+
     setGeneratingContract(true);
     try {
       const res = await api.post<{ contrato: string }>('/contracts/generate', {
@@ -233,7 +244,7 @@ export const AdminPanel: React.FC = () => {
         cliente_cpf: cCpf,
         cliente_profissao: cProfissao || undefined,
         cliente_estado_civil: cEstadoCivil,
-        cliente_endereco: cEndereco || undefined
+        cliente_endereco: enderecoCompleto || undefined
       });
 
       setGeneratedContract(res.contrato);
@@ -513,14 +524,50 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Endereço Residencial</label>
+                    <label>Endereço Residencial (Rua / Av. / Logradouro) *</label>
                     <input 
                       type="text" 
                       className="form-control" 
+                      required
                       value={cEndereco} 
                       onChange={(e) => setCEndereco(e.target.value)} 
-                      placeholder="Rua, Número, Bairro, Cidade" 
+                      placeholder="Ex: Av. Beira Mar" 
                     />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group" style={{ flex: '0 0 20%' }}>
+                      <label>Número *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required
+                        value={cNumero} 
+                        onChange={(e) => setCNumero(e.target.value)} 
+                        placeholder="Ex: 1200" 
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: '1 1 40%' }}>
+                      <label>Bairro *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required
+                        value={cBairroEndereco} 
+                        onChange={(e) => setCBairroEndereco(e.target.value)} 
+                        placeholder="Ex: Meireles" 
+                      />
+                    </div>
+                    <div className="form-group" style={{ flex: '1 1 40%' }}>
+                      <label>Complemento</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={cComplemento} 
+                        onChange={(e) => setCComplemento(e.target.value)} 
+                        placeholder="Ex: Apto 402 (Opcional)" 
+                      />
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
