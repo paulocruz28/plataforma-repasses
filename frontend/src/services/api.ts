@@ -112,5 +112,22 @@ export const api = {
       throw new Error(errText || `Erro HTTP: ${res.status}`);
     }
     return res.json() as Promise<T>;
+  },
+
+  async delete<T>(endpoint: string): Promise<T> {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!res.ok) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('corretor');
+        window.location.href = '/login';
+      }
+      const errText = await res.text();
+      throw new Error(errText || `Erro HTTP: ${res.status}`);
+    }
+    return res.json() as Promise<T>;
   }
 };

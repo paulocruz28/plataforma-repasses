@@ -892,8 +892,8 @@ export const AdminPanel: React.FC = () => {
                                 </div>
                               </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
-                              <td style={{ padding: '16px', fontSize: '0.92rem', fontWeight: 600 }}>{formatCurrency(parseFloat(r.valor_chave))}</td>
-                              <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor))}</td>
+                              <td style={{ padding: '16px', fontSize: '0.92rem', fontWeight: 600 }}>{formatCurrency(parseFloat(r.valor_chave.toString()))}</td>
+                              <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor.toString()))}</td>
                               <td style={{ padding: '16px' }}>
                                 <span className={`badge ${r.status === 'Disponível' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
                                   {r.status}
