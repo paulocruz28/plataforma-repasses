@@ -1087,19 +1087,33 @@ export const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                     
+                  <div className="form-row">
                     {editingRepasseId ? (
-                      <div className="form-group">
-                        <label>Status do Imóvel</label>
-                        <select 
-                          className="form-control" 
-                          value={repasseStatus} 
-                          onChange={(e) => setRepasseStatus(e.target.value)}
-                        >
-                          <option value="Disponível">Disponível</option>
-                          <option value="Vendido">Vendido</option>
-                          <option value="Indisponível">Indisponível</option>
-                        </select>
-                      </div>
+                      <>
+                        <div className="form-group">
+                          <label>Status do Imóvel</label>
+                          <select 
+                            className="form-control" 
+                            value={repasseStatus} 
+                            onChange={(e) => setRepasseStatus(e.target.value)}
+                          >
+                            <option value="Disponível">Disponível</option>
+                            <option value="Vendido">Vendido</option>
+                            <option value="Indisponível">Indisponível</option>
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
+                          <label className="toggle-switch">
+                            <input 
+                              type="checkbox" 
+                              checked={repasseVaranda} 
+                              onChange={(e) => setRepasseVaranda(e.target.checked)} 
+                            />
+                            <span className="switch-slider"></span>
+                            <span>Possui Varanda</span>
+                          </label>
+                        </div>
+                      </>
                     ) : (
                       <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
                         <label className="toggle-switch">
@@ -1114,20 +1128,6 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     )}
                   </div>
-
-                  {editingRepasseId && (
-                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', marginTop: '10px', marginBottom: '20px' }}>
-                      <label className="toggle-switch">
-                        <input 
-                          type="checkbox" 
-                          checked={repasseVaranda} 
-                          onChange={(e) => setRepasseVaranda(e.target.checked)} 
-                        />
-                        <span className="switch-slider"></span>
-                        <span>Possui Varanda</span>
-                      </label>
-                    </div>
-                  )}
 
                   <div className="form-group">
                     <label>URL da Imagem do Imóvel</label>
