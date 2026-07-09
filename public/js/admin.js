@@ -68,7 +68,7 @@ async function loadDashboardData() {
     tableBody.innerHTML = '';
 
     if (data.performanceCorretores.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhum corretor cadastrado</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Nenhum corretor cadastrado</td></tr>';
       return;
     }
 
@@ -79,6 +79,11 @@ async function loadDashboardData() {
         <td>${c.total_leads}</td>
         <td><span class="badge badge-success">${c.vendas}</span></td>
         <td>${c.taxa_conversao}%</td>
+        <td>
+          <button class="btn btn-secondary" onclick="copyPortfolioLink(${c.corretor_id})" style="padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+            📋 Copiar Link
+          </button>
+        </td>
       `;
       tableBody.appendChild(row);
     });
@@ -86,6 +91,16 @@ async function loadDashboardData() {
   } catch (err) {
     showToast('Erro ao carregar estatísticas do dashboard.', 'danger');
   }
+}
+
+// Copiar link de portfólio do corretor
+function copyPortfolioLink(corretorId) {
+  const link = `${window.location.origin}/?corretor=${corretorId}`;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('Link do portfólio do corretor copiado com sucesso!', 'success');
+  }).catch(err => {
+    showToast('Erro ao copiar link para área de transferência.', 'danger');
+  });
 }
 
 // ---------------------------------------------------------

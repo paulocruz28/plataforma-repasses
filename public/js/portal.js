@@ -2,6 +2,7 @@
 
 let selectedRepasseId = null;
 let currentCorretorId = null;
+let loadedRepasses = []; // Armazenamento global dos repasses carregados
 
 document.addEventListener('DOMContentLoaded', () => {
   // Verificar se estamos acessando um portfólio exclusivo de corretor
@@ -160,12 +161,42 @@ function renderRepasses(repasses) {
             <span class="broker-label">Responsável</span>
             <span class="broker-name">${item.corretor_nome || 'N/A'}</span>
           </div>
-          <button class="btn btn-primary" onclick="openLeadModal(${item.id})">Quero Negociar</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="shareOnWhatsApp(${item.id})" title="Enviar por WhatsApp" style="padding: 10px 14px;">📲</button>
+            <button class="btn btn-primary" onclick="openLeadModal(${item.id})">Negociar</button>
+          </div>
         </div>
       </div>
     `;
     grid.appendChild(card);
   });
+
+  // Salvar repasses globalmente para compartilhar
+  loadedRepasses = repasses;
+}
+
+// Compartilhar repasse no WhatsApp no formato de anotação rápida
+function shareOnWhatsApp(id) {
+  const item = loadedRepasses.find(r => r.id === id);
+  if (!item) return;
+
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(val));
+  };
+
+  const portfolioLink = `${window.location.origin}/?corretor=${item.corretor_id}`;
+
+  const text = `*OPORTUNIDADE DE REPASSE - ${item.titulo.toUpperCase()}*\n` +
+               `📍 Bairro: ${item.bairro}\n\n` +
+               `• ${item.quartos} ${item.quartos > 1 ? 'quartos' : 'quarto'}${item.area ? ', ' + item.area + 'm²' : ''}\n` +
+               `• ${item.varanda ? 'Com Varanda' : 'Sem Varanda'}\n` +
+               `• Valor da Chave (Ágio): ${formatCurrency(item.valor_chave)}\n` +
+               `• Saldo Devedor: ${formatCurrency(item.saldo_devedor)}\n` +
+               `• Valor da Parcela: ${item.parcela ? formatCurrency(item.parcela) : 'N/A'}\n\n` +
+               `Confira fotos e mais detalhes no meu portfólio digital:\n${portfolioLink}`;
+
+  const encodedText = encodeURIComponent(text);
+  window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
 }
 
 // Controle do Modal de Lead
