@@ -148,10 +148,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     if (senha && senha.trim()) {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(senha, salt);
-      queryText += ', senha_hash = $5 WHERE id = $6 RETURNING id, nome, email, telefone, nome_exibicao, foto_url';
+      queryText += ', senha_hash = $5 WHERE id = $6 RETURNING id, nome, email, telefone, nome_exibicao, foto_url, role';
       queryParams.push(hash, userId);
     } else {
-      queryText += ' WHERE id = $5 RETURNING id, nome, email, telefone, nome_exibicao, foto_url';
+      queryText += ' WHERE id = $5 RETURNING id, nome, email, telefone, nome_exibicao, foto_url, role';
       queryParams.push(userId);
     }
 
@@ -165,7 +165,8 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
         email: updatedCorretor.email, 
         nome: updatedCorretor.nome,
         nome_exibicao: updatedCorretor.nome_exibicao,
-        foto_url: updatedCorretor.foto_url
+        foto_url: updatedCorretor.foto_url,
+        role: updatedCorretor.role
       },
       JWT_SECRET,
       { expiresIn: '7d' }

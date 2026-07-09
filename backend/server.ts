@@ -36,6 +36,20 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Middleware de Log detalhado para depuração
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`>>> [REQ] ${req.method} ${req.originalUrl}`);
+  const originalJson = res.json;
+  res.json = function (body) {
+    console.log(`>>> [RES-JSON] ${req.method} ${req.originalUrl} - Status: ${res.statusCode}`);
+    if (res.statusCode >= 400) {
+      console.log(`>>> [RES-ERROR] Body:`, JSON.stringify(body));
+    }
+    return originalJson.apply(this, arguments as any);
+  };
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
