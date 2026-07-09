@@ -64,7 +64,11 @@ app.post('/api/contracts/verify-certificates', contractsController.verifyCertifi
 // ============================================================================
 
 // Servir arquivos estáticos do frontend compilado
-const frontendDistPath = path.join(__dirname, '../frontend/dist');
+const isCompiled = __dirname.endsWith('dist') || __dirname.includes('dist/');
+const frontendDistPath = isCompiled
+  ? path.join(__dirname, '../../frontend/dist')
+  : path.join(__dirname, '../frontend/dist');
+
 app.use(express.static(frontendDistPath));
 
 // Fallback para o frontend SPA (React Router cuidará das rotas /admin, etc.)
