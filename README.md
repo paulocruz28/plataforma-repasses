@@ -140,3 +140,13 @@ Para proteger as informações do CRM e emissão de minutas, a área administrat
 * **Código de Acesso para Cadastros:** O cadastro de novos corretores parceiros exige a chave administrativa de segurança `REPASSES2026`.
 * **Edição de Perfil:** Na aba **Meu Perfil**, o corretor pode alterar seu nome, escolher seu nome de exibição, alterar telefone de contato ou atualizar sua senha com upload de fotos de perfil de até 1MB convertidas em Base64.
 
+---
+
+## 🏗️ Gerenciamento de Imóveis (CRUD de Repasses)
+
+Os corretores agora possuem controle total sobre as oportunidades que publicam na plataforma através da aba **Meus Imóveis**:
+* **Listagem Consolidada:** Tabela contendo miniatura do imóvel, título, bairro, valor da chave, saldo devedor e status.
+* **Filtros Dinâmicos:** Filtro de busca local em tempo real por título ou bairro.
+* **Formulário Híbrido:** Criação e edição integradas no mesmo formulário, permitindo inclusive alterar o status do imóvel (*Disponível, Vendido, Indisponível*) para retirá-lo automaticamente do marketplace público.
+* **Exclusão Segura:** Botão de remoção definitiva com confirmação preventiva, mantendo a integridade dos leads associados através do mecanismo de chave estrangeira `ON DELETE SET NULL`.
+
