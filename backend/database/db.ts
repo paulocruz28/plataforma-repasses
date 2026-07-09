@@ -26,15 +26,17 @@ export const initDb = async (): Promise<void> => {
         senha_hash VARCHAR(255),
         nome_exibicao VARCHAR(100),
         foto_url TEXT,
+        role VARCHAR(20) DEFAULT 'corretor',
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // Migração automática e resiliente para adicionar senha_hash, nome_exibicao e foto_url se a tabela já existir
+    // Migração automática e resiliente para adicionar senha_hash, nome_exibicao, foto_url e role se a tabela já existir
     await client.query(`
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(255);
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS nome_exibicao VARCHAR(100);
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS foto_url TEXT;
+      ALTER TABLE corretores ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'corretor';
     `);
 
     // 2. Tabela de Repasses
@@ -93,10 +95,10 @@ export const initDb = async (): Promise<void> => {
     if (parseInt(corretoresCount.rows[0].count) === 0) {
       console.log('>>> [DB] Inserindo corretores padrão...');
       await client.query(`
-        INSERT INTO corretores (nome, email, telefone, senha_hash) VALUES 
-        ('Gabriel Souza', 'gabriel@repasses.com', '(85) 99999-1111', $1),
-        ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222', $1),
-        ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333', $1);
+        INSERT INTO corretores (nome, email, telefone, senha_hash, role) VALUES 
+        ('Gabriel Souza', 'gabriel@repasses.com', '(85) 99999-1111', $1, 'admin'),
+        ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222', $1, 'corretor'),
+        ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333', $1, 'corretor');
       `, [hash]);
     }
 

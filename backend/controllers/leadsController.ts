@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middlewares/authMiddleware';
 import * as db from '../database/db';
 
 // Cadastrar um lead e distribuir automaticamente via Roleta de Leads (Round-Robin)
@@ -73,14 +74,26 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
 // Obter todos os leads (para o painel de CRM)
 export const getLeads = async (req: Request, res: Response): Promise<void> => {
   try {
-    const queryText = `
+    const authReq = req as AuthenticatedRequest;
+    const isCorretor = authReq.user?.role === 'corretor';
+    const corretorId = authReq.user?.id;
+
+    let queryText = `
       SELECT l.*, c.nome as corretor_nome, r.titulo as repasse_titulo, r.bairro as repasse_bairro
       FROM leads l
       LEFT JOIN corretores c ON l.corretor_id = c.id
       LEFT JOIN repasses r ON l.repasse_id = r.id
-      ORDER BY l.data_criacao DESC
     `;
-    const { rows } = await db.query(queryText);
+    
+    const params: any[] = [];
+    if (isCorretor) {
+      queryText += ` WHERE l.corretor_id = $1 `;
+      params.push(corretorId);
+    }
+    
+    queryText += ` ORDER BY l.data_criacao DESC `;
+
+    const { rows } = await db.query(queryText, params);
     res.json(rows);
   } catch (err) {
     console.error('Erro ao buscar leads:', err);
@@ -137,15 +150,25 @@ export const updateLeadStatus = async (req: Request, res: Response): Promise<any
 // Obter estatísticas do painel (Dashboard de VGV e Conversões)
 export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
   try {
+    const authReq = req as AuthenticatedRequest;
+    const isCorretor = authReq.user?.role === 'corretor';
+    const corretorId = authReq.user?.id;
+
     // 1. Leads por status
-    const statusStats = await db.query(`
+    let statusQuery = `
       SELECT status, COUNT(*) as quantidade 
       FROM leads 
-      GROUP BY status
-    `);
+    `;
+    let statusParams: any[] = [];
+    if (isCorretor) {
+      statusQuery += ` WHERE corretor_id = $1 `;
+      statusParams.push(corretorId);
+    }
+    statusQuery += ` GROUP BY status `;
+    const statusStats = await db.query(statusQuery, statusParams);
 
     // 2. Cálculo do VGV
-    const vgvStats = await db.query(`
+    let vgvQuery = `
       SELECT 
         COALESCE(SUM(r.valor_chave), 0) as total_chaves,
         COALESCE(SUM(r.saldo_devedor), 0) as total_saldo_devedor,
@@ -153,7 +176,13 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
         COALESCE(SUM(r.valor_chave * (COALESCE(r.comissao_pct, 5.00) / 100.0)), 0) as total_comissao_corretor
       FROM repasses r
       WHERE r.status = 'Vendido'
-    `);
+    `;
+    let vgvParams: any[] = [];
+    if (isCorretor) {
+      vgvQuery += ` AND r.corretor_id = $1 `;
+      vgvParams.push(corretorId);
+    }
+    const vgvStats = await db.query(vgvQuery, vgvParams);
 
     const totalVgv = parseFloat(vgvStats.rows[0].total_vgv);
     const totalChaves = parseFloat(vgvStats.rows[0].total_chaves);
@@ -162,7 +191,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     const comissaoGestor = totalVgv * 0.01;
 
     // 3. Conversões e leads por corretor
-    const corretoresPerformance = await db.query(`
+    let perfQuery = `
       SELECT 
         c.id as corretor_id,
         c.nome as corretor_name,
@@ -172,9 +201,17 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       FROM corretores c
       LEFT JOIN leads l ON l.corretor_id = c.id
       WHERE c.ativo = true
+    `;
+    let perfParams: any[] = [];
+    if (isCorretor) {
+      perfQuery += ` AND c.id = $1 `;
+      perfParams.push(corretorId);
+    }
+    perfQuery += `
       GROUP BY c.id, c.nome
       ORDER BY vendas DESC, total_leads DESC
-    `);
+    `;
+    const corretoresPerformance = await db.query(perfQuery, perfParams);
 
     res.json({
       leadsPorStatus: statusStats.rows,

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import * as db from '../database/db';
 
 // Listar repasses com filtros flexíveis
@@ -6,14 +7,51 @@ export const getRepasses = async (req: Request, res: Response): Promise<void> =>
   try {
     const { bairro, quartos, varanda, valor_chave_max, saldo_devedor_max, busca } = req.query;
     
+    // Verificar token JWT opcionalmente para ajustar a visibilidade (RBAC)
+    let isCorretor = false;
+    let isAdmin = false;
+    let loggedCorretorId: number | null = null;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer') {
+        const token = parts[1];
+        try {
+          const JWT_SECRET = process.env.JWT_SECRET || 'repasses-secreto-secret-key-123';
+          const decoded = jwt.verify(token, JWT_SECRET) as { id: number; email: string; nome: string; role: string };
+          if (decoded.role === 'admin') {
+            isAdmin = true;
+          } else if (decoded.role === 'corretor') {
+            isCorretor = true;
+            loggedCorretorId = decoded.id;
+          }
+        } catch (err) {
+          // Token inválido/expirado, trata como consulta pública
+        }
+      }
+    }
+
     let queryText = `
       SELECT r.*, c.nome as corretor_nome, c.telefone as corretor_telefone 
       FROM repasses r
       LEFT JOIN corretores c ON r.corretor_id = c.id
-      WHERE r.status = 'Disponível'
+      WHERE 1=1
     `;
     const params: any[] = [];
     let paramIndex = 1;
+
+    // Se for consulta pública (não logado), filtrar apenas os disponíveis
+    if (!isAdmin && !isCorretor) {
+      queryText += ` AND r.status = 'Disponível' `;
+    }
+
+    // Se for corretor, filtrar apenas os imóveis dele
+    if (isCorretor && loggedCorretorId !== null) {
+      queryText += ` AND r.corretor_id = $${paramIndex} `;
+      params.push(loggedCorretorId);
+      paramIndex++;
+    }
 
     if (bairro) {
       queryText += ` AND r.bairro ILIKE $${paramIndex}`;

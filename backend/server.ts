@@ -9,6 +9,7 @@ import * as repassesController from './controllers/repassesController';
 import * as leadsController from './controllers/leadsController';
 import * as contractsController from './controllers/contractsController';
 import * as authController from './controllers/authController';
+import * as adminController from './controllers/adminController';
 import { authMiddleware } from './middlewares/authMiddleware';
 
 dotenv.config();
@@ -64,6 +65,11 @@ app.put('/api/leads/:id/status', authMiddleware, leadsController.updateLeadStatu
 
 // Dashboard
 app.get('/api/dashboard/stats', authMiddleware, leadsController.getDashboardStats);
+
+// Gestão de Equipe (Admin)
+app.get('/api/admin/team', authMiddleware, adminController.getTeam);
+app.post('/api/admin/team', authMiddleware, adminController.createTeamMember);
+app.put('/api/admin/team/:id', authMiddleware, adminController.updateTeamMember);
 
 // Contratos e Automação Jurídica
 app.post('/api/contracts/generate', authMiddleware, contractsController.generateContract);

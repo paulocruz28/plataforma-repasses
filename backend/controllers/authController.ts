@@ -41,7 +41,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Gerar Token JWT
     const token = jwt.sign(
-      { id: corretor.id, email: corretor.email, nome: corretor.nome },
+      { id: corretor.id, email: corretor.email, nome: corretor.nome, role: corretor.role || 'corretor' },
       JWT_SECRET,
       { expiresIn: '7d' } // Expira em 7 dias
     );
@@ -52,7 +52,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         id: corretor.id,
         nome: corretor.nome,
         email: corretor.email,
-        telefone: corretor.telefone
+        telefone: corretor.telefone,
+        role: corretor.role || 'corretor'
       }
     });
 
@@ -91,15 +92,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Inserir Corretor no Banco
     const result = await db.query(
-      'INSERT INTO corretores (nome, email, telefone, senha_hash) VALUES ($1, $2, $3, $4) RETURNING id, nome, email, telefone',
-      [nome.trim(), email.toLowerCase().trim(), telefone || null, hash]
+      'INSERT INTO corretores (nome, email, telefone, senha_hash, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome, email, telefone, role',
+      [nome.trim(), email.toLowerCase().trim(), telefone || null, hash, 'corretor']
     );
 
     const novoCorretor = result.rows[0];
 
     // Gerar Token JWT
     const token = jwt.sign(
-      { id: novoCorretor.id, email: novoCorretor.email, nome: novoCorretor.nome },
+      { id: novoCorretor.id, email: novoCorretor.email, nome: novoCorretor.nome, role: novoCorretor.role || 'corretor' },
       JWT_SECRET,
       { expiresIn: '7d' }
     );

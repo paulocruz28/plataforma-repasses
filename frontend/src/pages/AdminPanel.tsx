@@ -14,10 +14,11 @@ import {
   Trash2,
   Plus,
   ArrowLeft,
-  Building
+  Building,
+  Users
 } from 'lucide-react';
 
-type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile';
+type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile' | 'team';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -67,6 +68,38 @@ export const AdminPanel: React.FC = () => {
   const [corretores, setCorretores] = useState<{ id: number; nome: string }[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingLeads, setLoadingLeads] = useState(true);
+
+  // Estados de Controle de Acesso (RBAC) e Gestão de Equipe
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [team, setTeam] = useState<any[]>([]);
+  const [loadingTeam, setLoadingTeam] = useState(false);
+
+  // Formulário de Membros da Equipe
+  const [showTeamForm, setShowTeamForm] = useState(false);
+  const [editingTeamMemberId, setEditingTeamMemberId] = useState<number | null>(null);
+  const [teamNome, setTeamNome] = useState('');
+  const [teamEmail, setTeamEmail] = useState('');
+  const [teamTelefone, setTeamTelefone] = useState('');
+  const [teamSenha, setTeamSenha] = useState('');
+  const [teamRole, setTeamRole] = useState('corretor');
+  const [teamAtivo, setTeamAtivo] = useState(true);
+  const [savingTeamMember, setSavingTeamMember] = useState(false);
+
+  // Modal de Detalhamento de Cálculo Financeiro
+  const [selectedCalcRepasse, setSelectedCalcRepasse] = useState<Repasse | null>(null);
+
+  // Efeito para carregar o papel do usuário (role)
+  useEffect(() => {
+    const rawCorretor = localStorage.getItem('corretor');
+    if (rawCorretor) {
+      try {
+        const corretorObj = JSON.parse(rawCorretor);
+        setIsAdmin(corretorObj.role === 'admin');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   // Estados de Formulários
   // 1. Novo Repasse
@@ -139,6 +172,8 @@ export const AdminPanel: React.FC = () => {
           console.error(e);
         }
       }
+    } else if (activeTab === 'team') {
+      loadTeamData();
     }
   }, [activeTab]);
 
@@ -163,6 +198,61 @@ export const AdminPanel: React.FC = () => {
       showToast('Erro ao obter leads do CRM.', 'danger');
     } finally {
       setLoadingLeads(false);
+    }
+  };
+
+  const loadTeamData = async () => {
+    setLoadingTeam(true);
+    try {
+      const data = await api.get<any[]>('/admin/team');
+      setTeam(data);
+    } catch (err) {
+      showToast('Erro ao carregar equipe de corretores.', 'danger');
+    } finally {
+      setLoadingTeam(false);
+    }
+  };
+
+  const handleSaveTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!teamNome || !teamEmail || (!editingTeamMemberId && !teamSenha)) {
+      showToast('Por favor, preencha todos os campos obrigatórios.', 'warning');
+      return;
+    }
+
+    setSavingTeamMember(true);
+    try {
+      const payload = {
+        nome: teamNome,
+        email: teamEmail,
+        telefone: teamTelefone || null,
+        role: teamRole,
+        ativo: teamAtivo,
+        senha: teamSenha || undefined
+      };
+
+      if (editingTeamMemberId) {
+        await api.put(`/admin/team/${editingTeamMemberId}`, payload);
+        showToast('Membro da equipe atualizado com sucesso!', 'success');
+      } else {
+        await api.post('/admin/team', payload);
+        showToast('Novo corretor adicionado à equipe!', 'success');
+      }
+
+      // Resetar form e recarregar
+      setTeamNome('');
+      setTeamEmail('');
+      setTeamTelefone('');
+      setTeamSenha('');
+      setTeamRole('corretor');
+      setTeamAtivo(true);
+      setEditingTeamMemberId(null);
+      setShowTeamForm(false);
+      loadTeamData();
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao salvar corretor na equipe.', 'danger');
+    } finally {
+      setSavingTeamMember(false);
     }
   };
 
@@ -197,11 +287,35 @@ export const AdminPanel: React.FC = () => {
     });
   };
 
+  const triggerConfetti = () => {
+    if ((window as any).confetti) {
+      (window as any).confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 }
+      });
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js';
+      script.onload = () => {
+        (window as any).confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      };
+      document.body.appendChild(script);
+    }
+  };
+
   // Alterar Status do Lead no Kanban
   const changeLeadStatus = async (leadId: number, status: string) => {
     try {
       await api.put(`/leads/${leadId}/status`, { status });
       showToast('Status do lead atualizado no CRM!', 'success');
+      if (status === 'Vendido') {
+        triggerConfetti();
+      }
       loadCRMData();
     } catch (err) {
       showToast('Erro ao atualizar status do lead.', 'danger');
@@ -458,6 +572,18 @@ export const AdminPanel: React.FC = () => {
             <User size={18} />
             Meu Perfil
           </button>
+          {isAdmin && (
+            <button 
+              className={`sidebar-menu-item ${activeTab === 'team' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('team');
+                setShowTeamForm(false);
+              }}
+            >
+              <Users size={18} />
+              Gestão de Equipe
+            </button>
+          )}
         </nav>
       </aside>
 
@@ -551,49 +677,254 @@ export const AdminPanel: React.FC = () => {
         {/* 2. ABA CRM KANBAN */}
         {activeTab === 'crm' && (
           <div className="admin-section active">
+            <style dangerouslySetInnerHTML={{ __html: `
+              .kanban-board-premium {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(220px, 1fr));
+                gap: 20px;
+                align-items: start;
+                margin-top: 10px;
+                overflow-x: auto;
+                padding-bottom: 20px;
+              }
+              .kanban-column-premium {
+                border-radius: 16px;
+                padding: 16px;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02);
+                min-height: 600px;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+              }
+              .column-header-premium {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-bottom: 12px;
+                border-bottom: 2px solid rgba(0, 0, 0, 0.04);
+              }
+              .column-title-premium {
+                font-weight: 700;
+                font-size: 0.95rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+              }
+              .column-count-premium {
+                font-size: 0.8rem;
+                font-weight: 700;
+                padding: 3px 10px;
+                border-radius: 20px;
+                color: #ffffff;
+              }
+              .leads-list-premium {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                flex-grow: 1;
+              }
+              .lead-card-premium {
+                background: #ffffff;
+                border: 1px solid rgba(0, 0, 0, 0.06);
+                border-radius: 12px;
+                padding: 16px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              }
+              .lead-card-premium:hover {
+                transform: translateY(-4px) scale(1.01);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+                border-color: var(--primary);
+              }
+              .lead-card-sold-premium {
+                border: 2px solid #fbbf24 !important;
+                background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%) !important;
+                box-shadow: 0 8px 16px rgba(251, 191, 36, 0.1) !important;
+                position: relative;
+                overflow: hidden;
+              }
+              .lead-card-sold-premium::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 50%;
+                height: 100%;
+                background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+                transform: skewX(-25deg);
+                animation: shine-animation 4s infinite ease-in-out;
+              }
+              @keyframes shine-animation {
+                0% { left: -100%; }
+                20% { left: 150%; }
+                100% { left: 150%; }
+              }
+              .sold-badge-premium {
+                background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+                color: #ffffff;
+                font-size: 0.7rem;
+                font-weight: 700;
+                padding: 2px 8px;
+                border-radius: 6px;
+                display: inline-flex;
+                align-items: center;
+                gap: 3px;
+                box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+              }
+              .lead-name-premium {
+                font-weight: 700;
+                font-size: 0.95rem;
+                color: var(--text-primary);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              }
+              .lead-contact-premium {
+                font-size: 0.85rem;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              }
+              .lead-property-premium {
+                font-size: 0.82rem;
+                color: var(--text-muted);
+                background-color: rgba(0, 0, 0, 0.02);
+                padding: 6px 10px;
+                border-radius: 6px;
+                border: 1px solid rgba(0, 0, 0, 0.04);
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              }
+              .lead-footer-premium {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+                padding-top: 10px;
+                margin-top: 4px;
+              }
+              .lead-broker-premium {
+                font-size: 0.78rem;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-weight: 500;
+              }
+              .status-select-premium {
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 4px 8px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                background-color: var(--panel-bg);
+                color: var(--text-primary);
+                cursor: pointer;
+                outline: none;
+                transition: border-color 0.2s;
+              }
+              .status-select-premium:focus {
+                border-color: var(--primary);
+              }
+            `}} />
+
             {loadingLeads ? (
               <div className="empty-state"><h3>Carregando Leads do CRM...</h3></div>
             ) : (
-              <div className="kanban-board">
+              <div className="kanban-board-premium">
                 {/* Colunas do Kanban */}
                 {(['Novo', 'Não respondeu', 'Em negociação', 'Vendido'] as const).map(columnStatus => {
                   const columnLeads = leads.filter(l => l.status === columnStatus);
                   const countId = `count-${columnStatus.toLowerCase().replace(/\s+/g, '-')}`;
-                  const styleBorder = columnStatus === 'Vendido' ? { backgroundColor: 'rgba(16, 185, 129, 0.03)', borderColor: 'rgba(16, 185, 129, 0.2)' } : {};
                   
+                  // Configuração de estilo de cada coluna
+                  let colBg = 'rgba(255, 255, 255, 0.8)';
+                  let colBorder = 'rgba(0, 0, 0, 0.05)';
+                  let titleColor = 'var(--text-primary)';
+                  let badgeBg = 'var(--text-muted)';
+                  
+                  if (columnStatus === 'Novo') {
+                    colBg = '#eff6ff';
+                    colBorder = 'rgba(59, 130, 246, 0.15)';
+                    titleColor = '#1d4ed8';
+                    badgeBg = '#3b82f6';
+                  } else if (columnStatus === 'Não respondeu') {
+                    colBg = '#fffbeb';
+                    colBorder = 'rgba(245, 158, 11, 0.15)';
+                    titleColor = '#b45309';
+                    badgeBg = '#d97706';
+                  } else if (columnStatus === 'Em negociação') {
+                    colBg = '#f5f3ff';
+                    colBorder = 'rgba(139, 92, 246, 0.15)';
+                    titleColor = '#6d28d9';
+                    badgeBg = '#7c3aed';
+                  } else if (columnStatus === 'Vendido') {
+                    colBg = '#ecfdf5';
+                    colBorder = 'rgba(16, 185, 129, 0.15)';
+                    titleColor = '#047857';
+                    badgeBg = '#10b981';
+                  }
+
                   return (
-                    <div key={columnStatus} className="kanban-column glass-panel" style={styleBorder}>
-                      <div className="column-header">
-                        <span className="column-title" style={columnStatus === 'Vendido' ? { color: 'var(--success)' } : {}}>{columnStatus}</span>
+                    <div 
+                      key={columnStatus} 
+                      className="kanban-column-premium" 
+                      style={{ backgroundColor: colBg, borderColor: colBorder }}
+                    >
+                      <div className="column-header-premium" style={{ borderBottomColor: colBorder }}>
+                        <span className="column-title-premium" style={{ color: titleColor }}>{columnStatus}</span>
                         <span 
-                          className="column-count" 
+                          className="column-count-premium" 
                           id={countId}
-                          style={columnStatus === 'Vendido' ? { backgroundColor: 'var(--success-glow)', color: 'var(--success)' } : {}}
+                          style={{ backgroundColor: badgeBg }}
                         >
                           {columnLeads.length}
                         </span>
                       </div>
-                      <div className="leads-list">
-                        {columnLeads.map(lead => (
-                          <div key={lead.id} className="lead-card glass-panel">
-                            <div className="lead-name">{lead.nome}</div>
-                            <div className="lead-contact">📞 {lead.telefone}</div>
-                            <div className="lead-property">🏠 {lead.repasse_titulo || 'Interesse Geral'} ({lead.repasse_bairro || 'N/A'})</div>
-                            <div className="lead-footer">
-                              <span className="lead-broker-tag">👤 {lead.corretor_nome}</span>
-                              <select 
-                                className="status-select" 
-                                value={lead.status}
-                                onChange={(e) => changeLeadStatus(lead.id, e.target.value)}
-                              >
-                                <option value="Novo">Novo</option>
-                                <option value="Não respondeu">Não respondeu</option>
-                                <option value="Em negociação">Em negociação</option>
-                                <option value="Vendido">Vendido</option>
-                              </select>
+                      <div className="leads-list-premium">
+                        {columnLeads.map(lead => {
+                          const isSold = lead.status === 'Vendido';
+                          return (
+                            <div 
+                              key={lead.id} 
+                              className={`lead-card-premium ${isSold ? 'lead-card-sold-premium' : ''}`}
+                            >
+                              <div className="lead-name-premium">
+                                <span>{lead.nome}</span>
+                                {isSold && <span className="sold-badge-premium">⭐ Vendido</span>}
+                              </div>
+                              <div className="lead-contact-premium">
+                                <span>📞</span> {lead.telefone}
+                              </div>
+                              <div className="lead-property-premium">
+                                <span>🏠</span> 
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${lead.repasse_titulo || 'Geral'} - ${lead.repasse_bairro || 'N/A'}`}>
+                                  {lead.repasse_titulo || 'Interesse Geral'} ({lead.repasse_bairro || 'N/A'})
+                                </span>
+                              </div>
+                              <div className="lead-footer-premium">
+                                <div className="lead-broker-premium" title={`Atribuído a: ${lead.corretor_nome}`}>
+                                  <span>👤</span> {lead.corretor_nome ? lead.corretor_nome.split(' ')[0] : 'N/A'}
+                                </div>
+                                <select 
+                                  className="status-select-premium" 
+                                  value={lead.status}
+                                  onChange={(e) => changeLeadStatus(lead.id, e.target.value)}
+                                >
+                                  <option value="Novo">Novo</option>
+                                  <option value="Não respondeu">Não resp.</option>
+                                  <option value="Em negociação">Em negoc.</option>
+                                  <option value="Vendido">Vendido</option>
+                                </select>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -897,8 +1228,12 @@ export const AdminPanel: React.FC = () => {
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
                               <td style={{ padding: '16px' }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{formatCurrency(parseFloat(r.valor_chave.toString()))}</div>
-                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                  Recebe: <b>{formatCurrency(parseFloat(r.valor_chave.toString()) * (r.comissao_pct ? parseFloat(r.comissao_pct.toString()) / 100 : 0.05))}</b> ({r.comissao_pct || 5}%)
+                                <div 
+                                  style={{ fontSize: '0.78rem', color: 'var(--primary)', marginTop: '2px', cursor: 'pointer', textDecoration: 'underline' }}
+                                  onClick={() => setSelectedCalcRepasse(r)}
+                                  title="Ver detalhamento completo dos valores"
+                                >
+                                  Recebe: <b>{formatCurrency(parseFloat(r.valor_chave.toString()) * (r.comissao_pct ? parseFloat(r.comissao_pct.toString()) / 100 : 0.05))}</b> ({r.comissao_pct || 5}%) 🔍
                                 </div>
                               </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor.toString()))}</td>
@@ -1337,6 +1672,342 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
+        {/* 6. ABA GESTÃO DE EQUIPE (ADMIN ONLY) */}
+        {activeTab === 'team' && isAdmin && (
+          <div className="admin-section active">
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Gestão de Equipe</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>
+                  Gerencie o cadastro, permissões e status dos corretores da imobiliária.
+                </p>
+              </div>
+              {!showTeamForm && (
+                <button 
+                  className="btn btn-primary" 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+                  onClick={() => {
+                    setTeamNome('');
+                    setTeamEmail('');
+                    setTeamTelefone('');
+                    setTeamSenha('');
+                    setTeamRole('corretor');
+                    setTeamAtivo(true);
+                    setEditingTeamMemberId(null);
+                    setShowTeamForm(true);
+                  }}
+                >
+                  <Plus size={18} /> Adicionar Corretor
+                </button>
+              )}
+            </div>
+
+            {loadingTeam ? (
+              <div className="empty-state" style={{ padding: '40px', textAlign: 'center' }}><h3>Carregando Equipe de Corretores...</h3></div>
+            ) : showTeamForm ? (
+              <div className="glass-panel" style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '20px' }}>
+                  {editingTeamMemberId ? 'Editar Corretor' : 'Cadastrar Novo Corretor na Equipe'}
+                </h3>
+                <form onSubmit={handleSaveTeamMember} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Nome Completo *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={teamNome} 
+                        onChange={(e) => setTeamNome(e.target.value)} 
+                        placeholder="Nome do corretor" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>E-mail Corporativo *</label>
+                      <input 
+                        type="email" 
+                        className="form-control" 
+                        required 
+                        value={teamEmail} 
+                        onChange={(e) => setTeamEmail(e.target.value)} 
+                        placeholder="email@imobiliaria.com" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Telefone (WhatsApp)</label>
+                      <input 
+                        type="tel" 
+                        className="form-control" 
+                        value={teamTelefone} 
+                        onChange={(e) => setTeamTelefone(formatPhone(e.target.value))} 
+                        placeholder="Ex: (85) 9 9999-9999" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Nível de Acesso (Cargo) *</label>
+                      <select 
+                        className="form-control" 
+                        value={teamRole} 
+                        onChange={(e) => setTeamRole(e.target.value)}
+                      >
+                        <option value="corretor">Corretor Parcerias</option>
+                        <option value="admin">Administrador / Diretor</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <div className="form-group">
+                      <label>{editingTeamMemberId ? 'Alterar Senha (Opcional)' : 'Senha de Acesso *'}</label>
+                      <input 
+                        type="password" 
+                        className="form-control" 
+                        required={!editingTeamMemberId}
+                        value={teamSenha} 
+                        onChange={(e) => setTeamSenha(e.target.value)} 
+                        placeholder={editingTeamMemberId ? "Deixe em branco para manter" : "Senha provisória (min. 6 dígitos)"} 
+                      />
+                    </div>
+                    <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
+                      <label className="toggle-switch">
+                        <input 
+                          type="checkbox" 
+                          checked={teamAtivo} 
+                          onChange={(e) => setTeamAtivo(e.target.checked)} 
+                        />
+                        <span className="switch-slider"></span>
+                        <span>Conta Ativa (Pode logar)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '10px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary" 
+                      onClick={() => setShowTeamForm(false)}
+                      disabled={savingTeamMember}
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary" 
+                      disabled={savingTeamMember}
+                      style={{ minWidth: '120px' }}
+                    >
+                      {savingTeamMember ? 'Salvando...' : 'Salvar'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div className="glass-panel" style={{ padding: '0px', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
+                        <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Nome / E-mail</th>
+                        <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>WhatsApp</th>
+                        <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Cargo</th>
+                        <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Status</th>
+                        <th style={{ padding: '16px', fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase', textAlign: 'right' }}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {team.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            Nenhum corretor cadastrado na equipe.
+                          </td>
+                        </tr>
+                      ) : (
+                        team.map((member) => (
+                          <tr key={member.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }}>
+                            <td style={{ padding: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '50%',
+                                  backgroundColor: member.role === 'admin' ? 'var(--primary)' : 'var(--text-muted)',
+                                  color: '#ffffff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: '600',
+                                  fontSize: '0.9rem'
+                                }}>
+                                  {member.nome.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{member.nome}</div>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{member.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '16px', fontSize: '0.92rem' }}>{member.telefone || 'Não informado'}</td>
+                            <td style={{ padding: '16px' }}>
+                              <span className={`badge ${member.role === 'admin' ? 'badge-primary' : 'badge-secondary'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                                {member.role === 'admin' ? 'Admin' : 'Corretor'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '16px' }}>
+                              <span className={`badge ${member.ativo ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                                {member.ativo ? 'Ativo' : 'Inativo'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '16px', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                                  onClick={() => {
+                                    setTeamNome(member.nome);
+                                    setTeamEmail(member.email);
+                                    setTeamTelefone(member.telefone || '');
+                                    setTeamSenha('');
+                                    setTeamRole(member.role);
+                                    setTeamAtivo(member.ativo);
+                                    setEditingTeamMemberId(member.id);
+                                    setShowTeamForm(true);
+                                  }}
+                                >
+                                  Editar
+                                </button>
+                                <button 
+                                  className="btn btn-secondary" 
+                                  style={{ padding: '6px 12px', fontSize: '0.85rem', color: member.ativo ? '#ef4444' : '#10b981', borderColor: 'rgba(0,0,0,0.1)' }}
+                                  onClick={async () => {
+                                    try {
+                                      await api.put(`/admin/team/${member.id}`, {
+                                        nome: member.nome,
+                                        email: member.email,
+                                        telefone: member.telefone,
+                                        role: member.role,
+                                        ativo: !member.ativo
+                                      });
+                                      showToast(`Corretor ${member.ativo ? 'desativado' : 'ativado'} com sucesso!`, 'success');
+                                      loadTeamData();
+                                    } catch (e) {
+                                      showToast('Erro ao alterar status do corretor.', 'danger');
+                                    }
+                                  }}
+                                >
+                                  {member.ativo ? 'Desativar' : 'Reativar'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL DE DETALHAMENTO FINANCEIRO */}
+        {selectedCalcRepasse && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px'
+          }}>
+            <div className="glass-panel" style={{
+              width: '100%',
+              maxWidth: '550px',
+              padding: '30px',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
+              border: '1px solid var(--border-color)',
+              animation: 'fadeIn 0.2s ease-out'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Detalhamento Financeiro do Fechamento</h3>
+                <button 
+                  onClick={() => setSelectedCalcRepasse(null)}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    fontSize: '1.5rem',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    padding: '4px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(0,0,0,0.02)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  Imóvel: <b>{selectedCalcRepasse.titulo}</b> ({selectedCalcRepasse.bairro})
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                    <span>Valor da Chave (Ágio):</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(parseFloat(selectedCalcRepasse.valor_chave.toString()))}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem' }}>
+                    <span>Saldo Devedor do Financiamento:</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(parseFloat(selectedCalcRepasse.saldo_devedor.toString()))}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 700, padding: '8px 0', borderTop: '1px dashed var(--border-color)', borderBottom: '1px dashed var(--border-color)', margin: '4px 0' }}>
+                    <span>VGV Geral (Valor do Imóvel):</span>
+                    <span style={{ color: 'var(--primary)' }}>{formatCurrency(parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString()))}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#059669' }}>
+                    <span>Comissão do Corretor ({selectedCalcRepasse.comissao_pct || 5}% da Chave):</span>
+                    <span style={{ fontWeight: 600 }}>+ {formatCurrency(parseFloat(selectedCalcRepasse.valor_chave.toString()) * ((selectedCalcRepasse.comissao_pct || 5) / 100))}</span>
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#dc2626' }}>
+                    <span>Taxa da Imobiliária (1% do VGV):</span>
+                    <span style={{ fontWeight: 600 }}>- {formatCurrency((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * 0.01)}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, padding: '12px', backgroundColor: 'rgba(5, 150, 105, 0.05)', border: '1px solid rgba(5, 150, 105, 0.1)', borderRadius: '8px', marginTop: '8px' }}>
+                    <span style={{ color: 'var(--text-primary)' }}>Líquido Recebido pelo Vendedor:</span>
+                    <span style={{ color: '#059669' }}>
+                      {formatCurrency(
+                        parseFloat(selectedCalcRepasse.valor_chave.toString()) - 
+                        (parseFloat(selectedCalcRepasse.valor_chave.toString()) * ((selectedCalcRepasse.comissao_pct || 5) / 100)) - 
+                        ((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * 0.01)
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '16px', lineHeight: '1.4' }}>
+                  💡 <b>Legenda das Comissões:</b> A comissão do corretor é adicionada ao valor pago pelo comprador no fechamento do ágio. A taxa da imobiliária (1%) é deduzida do valor de VGV final para custear a plataforma e assessoria comercial.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <button className="btn btn-primary" onClick={() => setSelectedCalcRepasse(null)} style={{ minWidth: '120px' }}>
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
