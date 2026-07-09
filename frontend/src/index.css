@@ -1,4 +1,3 @@
-/* Design System - Plataforma de Repasses */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -34,7 +33,6 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Toggle Tema Light (Opcional) */
 [data-theme="light"] {
   --bg-color: #f8fafc;
   --panel-bg: rgba(255, 255, 255, 0.85);
@@ -57,7 +55,6 @@
   --shadow-lg: 0 12px 36px rgba(15, 23, 42, 0.08);
 }
 
-/* Reset Geral */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -73,7 +70,23 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Botões Modernos */
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-sm);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Layout Utilities */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -117,7 +130,6 @@ body {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
-/* Efeito Glassmorphism para Paineis */
 .glass-panel {
   background: var(--panel-bg);
   backdrop-filter: var(--glass-filter);
@@ -127,7 +139,6 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* Inputs Premium */
 .form-group {
   margin-bottom: 20px;
 }
@@ -164,26 +175,6 @@ body {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-color);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Badges e Status */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -209,50 +200,7 @@ body {
   color: var(--danger);
 }
 
-/* Header Geral */
-header {
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 40px;
-  border-bottom: 1px solid var(--border-color);
-  position: relative;
-  z-index: 100;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
-
-.logo span {
-  color: var(--primary);
-}
-
-.nav-links {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-}
-
-.nav-links a {
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.nav-links a:hover, .nav-links a.active {
-  color: var(--text-primary);
-}
-
-/* Notificações Toasts */
+/* Toast System CSS */
 .toast-container {
   position: fixed;
   bottom: 24px;
@@ -274,14 +222,35 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  transform: translateX(120%);
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.toast.show {
-  transform: translateX(0);
+@keyframes slideIn {
+  from { transform: translateX(120%); }
+  to { transform: translateX(0); }
 }
 
 .toast.success { border-left-color: var(--success); }
 .toast.warning { border-left-color: var(--warning); }
 .toast.danger { border-left-color: var(--danger); }
+
+/* Print layout */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    background: none;
+    color: #000000;
+    border: none;
+  }
+}

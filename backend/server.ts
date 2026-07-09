@@ -1,32 +1,32 @@
-require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const { initDb } = require('./database/db');
+import dotenv from 'dotenv';
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
+import cors from 'cors';
+import { initDb } from './database/db';
 
 // Controllers
-const repassesController = require('./controllers/repassesController');
-const leadsController = require('./controllers/leadsController');
-const contractsController = require('./controllers/contractsController');
+import * as repassesController from './controllers/repassesController';
+import * as leadsController from './controllers/leadsController';
+import * as contractsController from './controllers/contractsController';
+
+dotenv.config();
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 3000;
 
-console.log('>>> [SISTEMA] Inicializando Plataforma de Repasses...');
+console.log('>>> [SISTEMA] Inicializando Plataforma de Repasses em TypeScript...');
 
 // Middleware de CORS
 app.use(cors());
 
 // Middlewares Globais de Segurança e Timeout (Padrão STI)
-app.use((req, res, next) => {
-  // Mantendo timeout de 10s para integrações externas e conexões
+app.use((req: Request, res: Response, next: NextFunction) => {
   req.setTimeout(10000, () => {
     console.log(`>>> [STI] TIMEOUT: A requisição para ${req.originalUrl} excedeu 10s.`);
     res.status(408).send('Request Timeout');
   });
 
-  // Headers de segurança básicos
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -60,27 +60,22 @@ app.post('/api/contracts/generate', contractsController.generateContract);
 app.post('/api/contracts/verify-certificates', contractsController.verifyCertificates);
 
 // ============================================================================
-// >>> ROTEAMENTO ESTÁTICO (FRONTEND)
+// >>> ROTEAMENTO ESTÁTICO (FRONTEND REACT COM VITE)
 // ============================================================================
 
-// Servir arquivos estáticos do frontend
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir arquivos estáticos do frontend compilado
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendDistPath));
 
-// Fallback para a área administrativa (CRM)
-app.use('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// Fallback geral (Portal Público / Marketplace)
-app.use('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Fallback para o frontend SPA (React Router cuidará das rotas /admin, etc.)
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 // ============================================================================
 // >>> INICIALIZAÇÃO
 // ============================================================================
 
-// Inicializar banco PostgreSQL e depois ligar o servidor
 initDb()
   .then(() => {
     app.listen(PORT, () => {

@@ -1,7 +1,8 @@
-const db = require('../database/db');
+import { Request, Response } from 'express';
+import * as db from '../database/db';
 
 // Listar repasses com filtros flexíveis
-const getRepasses = async (req, res) => {
+export const getRepasses = async (req: Request, res: Response): Promise<void> => {
   try {
     const { bairro, quartos, varanda, valor_chave_max, saldo_devedor_max, busca } = req.query;
     
@@ -11,7 +12,7 @@ const getRepasses = async (req, res) => {
       LEFT JOIN corretores c ON r.corretor_id = c.id
       WHERE r.status = 'Disponível'
     `;
-    const params = [];
+    const params: any[] = [];
     let paramIndex = 1;
 
     if (bairro) {
@@ -22,7 +23,7 @@ const getRepasses = async (req, res) => {
 
     if (quartos) {
       queryText += ` AND r.quartos >= $${paramIndex}`;
-      params.push(parseInt(quartos));
+      params.push(parseInt(quartos as string));
       paramIndex++;
     }
 
@@ -34,13 +35,13 @@ const getRepasses = async (req, res) => {
 
     if (valor_chave_max) {
       queryText += ` AND r.valor_chave <= $${paramIndex}`;
-      params.push(parseFloat(valor_chave_max));
+      params.push(parseFloat(valor_chave_max as string));
       paramIndex++;
     }
 
     if (saldo_devedor_max) {
       queryText += ` AND r.saldo_devedor <= $${paramIndex}`;
-      params.push(parseFloat(saldo_devedor_max));
+      params.push(parseFloat(saldo_devedor_max as string));
       paramIndex++;
     }
 
@@ -61,7 +62,7 @@ const getRepasses = async (req, res) => {
 };
 
 // Obter detalhes de um repasse específico
-const getRepasseById = async (req, res) => {
+export const getRepasseById = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const queryText = `
@@ -82,7 +83,7 @@ const getRepasseById = async (req, res) => {
 };
 
 // Obter repasses por corretor (Portfólio do Corretor)
-const getRepassesByCorretor = async (req, res) => {
+export const getRepassesByCorretor = async (req: Request, res: Response): Promise<any> => {
   try {
     const { corretorId } = req.params;
     
@@ -111,7 +112,7 @@ const getRepassesByCorretor = async (req, res) => {
 };
 
 // Cadastrar novo repasse
-const createRepasse = async (req, res) => {
+export const createRepasse = async (req: Request, res: Response): Promise<any> => {
   try {
     const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, corretor_id } = req.body;
     
@@ -146,8 +147,8 @@ const createRepasse = async (req, res) => {
   }
 };
 
-// Obter lista de corretores ativos (para combos de cadastro)
-const getCorretores = async (req, res) => {
+// Obter lista de corretores ativos
+export const getCorretores = async (req: Request, res: Response): Promise<void> => {
   try {
     const { rows } = await db.query('SELECT id, nome, email, telefone, ativo FROM corretores WHERE ativo = true ORDER BY nome');
     res.json(rows);
@@ -155,12 +156,4 @@ const getCorretores = async (req, res) => {
     console.error('Erro ao buscar corretores:', err);
     res.status(500).json({ error: 'Erro ao buscar corretores.' });
   }
-};
-
-module.exports = {
-  getRepasses,
-  getRepasseById,
-  getRepassesByCorretor,
-  createRepasse,
-  getCorretores
 };

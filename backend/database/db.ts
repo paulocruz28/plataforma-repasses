@@ -1,5 +1,7 @@
-require('dotenv').config();
-const { Pool } = require('pg');
+import dotenv from 'dotenv';
+import { Pool, PoolClient } from 'pg';
+
+dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -7,8 +9,8 @@ const pool = new Pool({
 });
 
 // Inicialização do banco de dados
-const initDb = async () => {
-  const client = await pool.connect();
+export const initDb = async (): Promise<void> => {
+  const client: PoolClient = await pool.connect();
   try {
     console.log('>>> [DB] Inicializando tabelas do banco de dados...');
     
@@ -75,7 +77,6 @@ const initDb = async () => {
     const repassesCount = await client.query('SELECT COUNT(*) FROM repasses');
     if (parseInt(repassesCount.rows[0].count) === 0) {
       console.log('>>> [DB] Inserindo repasses de exemplo...');
-      // Obter ids dos corretores inseridos
       const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
       const c1 = corretoresRes.rows[0].id;
       const c2 = corretoresRes.rows[1].id;
@@ -86,7 +87,7 @@ const initDb = async () => {
         ('Apartamento Vista Mar Aldeota', 'Aldeota', 180000.00, 320000.00, 2400.00, 3, true, 85, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop&q=60', 'Lindo apartamento na Aldeota com varanda ampla e vista mar permanente. Próximo a shoppings e escolas.', $1),
         ('Compacto Moderno Meireles', 'Meireles', 120000.00, 190000.00, 1350.00, 1, false, 42, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&auto=format&fit=crop&q=60', 'Studio mobiliado e decorado a 2 quadras da Beira Mar. Perfeito para rentabilidade ou moradia prática.', $2),
         ('Familiar Confortável Cocó', 'Cocó', 220000.00, 450000.00, 3100.00, 3, true, 110, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60', 'Excelente imóvel para família ao lado do Parque do Cocó. Lazer completo e segurança 24h.', $3),
-        ('Repasse Aconchegante Fátima', 'Fátima', 950000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento super conservado no bairro de Fátima. Área de lazer, varanda ventilada e ótima localização.', $1);
+        ('Repasse Aconchegante Fátima', 'Fátima', 95000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento super conservado no bairro de Fátima. Área de lazer, varanda ventilada e ótima localização.', $1);
       `, [c1, c2, c3]);
     }
 
@@ -98,8 +99,5 @@ const initDb = async () => {
   }
 };
 
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool,
-  initDb
-};
+export const query = (text: string, params?: any[]) => pool.query(text, params);
+export { pool };

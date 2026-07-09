@@ -1,7 +1,8 @@
-const db = require('../database/db');
+import { Request, Response } from 'express';
+import * as db from '../database/db';
 
 // Cadastrar um lead e distribuir automaticamente via Roleta de Leads (Round-Robin)
-const createLead = async (req, res) => {
+export const createLead = async (req: Request, res: Response): Promise<any> => {
   try {
     const { nome, telefone, email, repasse_id } = req.body;
 
@@ -18,7 +19,7 @@ const createLead = async (req, res) => {
       return res.status(500).json({ error: 'Nenhum corretor ativo no sistema para receber o lead.' });
     }
 
-    let corretorDestinoId = null;
+    let corretorDestinoId: number | null = null;
 
     // 2. Obter o corretor do último lead cadastrado para fazer a roleta
     const { rows: ultimoLead } = await db.query(
@@ -53,7 +54,7 @@ const createLead = async (req, res) => {
     const { rows: leadInserido } = await db.query(queryText, params);
 
     // Obter o nome do corretor para retornar no response
-    const corretorNome = corretores.find(c => c.id === corretorDestinoId).nome;
+    const corretorNome = corretores.find(c => c.id === corretorDestinoId)!.nome;
 
     res.status(201).json({
       message: 'Lead recebido e distribuído com sucesso na roleta!',
@@ -70,7 +71,7 @@ const createLead = async (req, res) => {
 };
 
 // Obter todos os leads (para o painel de CRM)
-const getLeads = async (req, res) => {
+export const getLeads = async (req: Request, res: Response): Promise<void> => {
   try {
     const queryText = `
       SELECT l.*, c.nome as corretor_nome, r.titulo as repasse_titulo, r.bairro as repasse_bairro
@@ -88,7 +89,7 @@ const getLeads = async (req, res) => {
 };
 
 // Atualizar o status do lead (Kanban e Vendas)
-const updateLeadStatus = async (req, res) => {
+export const updateLeadStatus = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -120,7 +121,6 @@ const updateLeadStatus = async (req, res) => {
         [lead.repasse_id]
       );
     } else if (status !== 'Vendido' && lead.repasse_id) {
-      // Caso saia do status Vendido, devolve a disponibilidade do repasse
       await db.query(
         "UPDATE repasses SET status = 'Disponível' WHERE id = $1 AND status = 'Vendido'",
         [lead.repasse_id]
@@ -135,7 +135,7 @@ const updateLeadStatus = async (req, res) => {
 };
 
 // Obter estatísticas do painel (Dashboard de VGV e Conversões)
-const getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
   try {
     // 1. Leads por status
     const statusStats = await db.query(`
@@ -144,8 +144,7 @@ const getDashboardStats = async (req, res) => {
       GROUP BY status
     `);
 
-    // 2. Cálculo do VGV (Valor Geral de Vendas) e Comissões dos repasses vendidos
-    // O VGV é a soma do valor da chave + saldo devedor das unidades vendidas
+    // 2. Cálculo do VGV
     const vgvStats = await db.query(`
       SELECT 
         COALESCE(SUM(r.valor_chave), 0) as total_chaves,
@@ -158,15 +157,14 @@ const getDashboardStats = async (req, res) => {
     const totalVgv = parseFloat(vgvStats.rows[0].total_vgv);
     const totalChaves = parseFloat(vgvStats.rows[0].total_chaves);
     
-    // A comissão média de repasses (sobre o valor da chave/ágio) é em torno de 5% a 6%, ou uma taxa fixa.
-    // Vamos calcular 5% sobre o valor da chave (ágio negociado) e 1% sobre o VGV geral para os gestores.
-    const comissaoCorretor = totalChaves * 0.05; // 5% do ágio
-    const comissaoGestor = totalVgv * 0.01;      // 1% do VGV total
+    const comissaoCorretor = totalChaves * 0.05;
+    const comissaoGestor = totalVgv * 0.01;
 
     // 3. Conversões e leads por corretor
     const corretoresPerformance = await db.query(`
       SELECT 
-        c.nome as corretor_nome,
+        c.id as corretor_id,
+        c.nome as corretor_name,
         COUNT(l.id) as total_leads,
         COUNT(CASE WHEN l.status = 'Vendido' THEN 1 END) as vendas,
         ROUND(COALESCE(COUNT(CASE WHEN l.status = 'Vendido' THEN 1 END)::numeric / NULLIF(COUNT(l.id), 0), 0) * 100, 1) as taxa_conversao
@@ -191,11 +189,4 @@ const getDashboardStats = async (req, res) => {
     console.error('Erro ao calcular estatísticas do dashboard:', err);
     res.status(500).json({ error: 'Erro ao processar métricas do dashboard.' });
   }
-};
-
-module.exports = {
-  createLead,
-  getLeads,
-  updateLeadStatus,
-  getDashboardStats
 };

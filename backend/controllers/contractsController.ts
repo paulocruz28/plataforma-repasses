@@ -1,7 +1,8 @@
-const db = require('../database/db');
+import { Request, Response } from 'express';
+import * as db from '../database/db';
 
 // Simular verificação de certidões junto a Sefin e ONR com lógica de timeout resiliente
-const verifyCertificates = async (req, res) => {
+export const verifyCertificates = async (req: Request, res: Response): Promise<any> => {
   try {
     const { cpf } = req.body;
     if (!cpf) {
@@ -10,19 +11,16 @@ const verifyCertificates = async (req, res) => {
 
     console.log(`>>> [INTEGRAÇÃO] Iniciando busca de certidões negativas para o CPF: ${cpf}...`);
 
-    // Simulando o delay de uma chamada de API governamental (Sefin / ONR)
-    // O timeout padrão interno é de 10s (conforme server.js), simulamos resposta em 2.5s
-    await new Promise((resolve, reject) => {
+    // Simulando o delay de uma chamada de API governamental
+    await new Promise<void>((resolve) => {
       const timer = setTimeout(() => resolve(), 2500);
       
-      // Caso a requisição demorasse mais de 10s, o middleware global do server.js responderia com 408
       req.on('close', () => {
         clearTimeout(timer);
         console.log('>>> [INTEGRAÇÃO] Requisição cancelada pelo cliente.');
       });
     });
 
-    // Retorna os dados mockados simulando sucesso na emissão automática das certidões
     res.json({
       status: 'Sucesso',
       cpf: cpf,
@@ -51,7 +49,7 @@ const verifyCertificates = async (req, res) => {
 };
 
 // Gerar minuta do contrato de repasse preenchido automaticamente
-const generateContract = async (req, res) => {
+export const generateContract = async (req: Request, res: Response): Promise<any> => {
   try {
     const { 
       repasse_id, 
@@ -82,7 +80,7 @@ const generateContract = async (req, res) => {
     const repasse = rows[0];
 
     // Formatação de valores monetários para o contrato
-    const formatCurrency = (val) => {
+    const formatCurrency = (val: any) => {
       return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(val));
     };
 
@@ -90,7 +88,6 @@ const generateContract = async (req, res) => {
     const saldoDevedorStr = formatCurrency(repasse.saldo_devedor);
     const parcelaStr = repasse.parcela ? formatCurrency(repasse.parcela) : 'N/A';
 
-    // Gerar corpo do contrato (Minuta de Cessão de Direitos e Obrigações)
     const contratoTexto = `
 # INSTRUMENTO PARTICULAR DE CESSÃO DE DIREITOS E OBRIGAÇÕES DE IMÓVEL FINANCIADO ("REPASSE")
 
@@ -143,9 +140,4 @@ ___________________________________________________
     console.error('Erro ao gerar contrato:', err);
     res.status(500).json({ error: 'Erro ao gerar o contrato de repasse.' });
   }
-};
-
-module.exports = {
-  verifyCertificates,
-  generateContract
 };
