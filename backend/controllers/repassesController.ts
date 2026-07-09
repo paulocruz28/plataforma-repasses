@@ -157,3 +157,67 @@ export const getCorretores = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ error: 'Erro ao buscar corretores.' });
   }
 };
+
+// Atualizar repasse existente
+export const updateRepasse = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, status, corretor_id } = req.body;
+
+    if (!titulo || !bairro || !valor_chave || !saldo_devedor || !corretor_id) {
+      return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
+    }
+
+    const repasseCheck = await db.query('SELECT * FROM repasses WHERE id = $1', [id]);
+    if (repasseCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Repasse não encontrado.' });
+    }
+
+    const queryText = `
+      UPDATE repasses 
+      SET titulo = $1, bairro = $2, valor_chave = $3, saldo_devedor = $4, parcela = $5, 
+          quartos = $6, varanda = $7, area = $8, imagem_url = $9, descricao = $10, status = $11, corretor_id = $12
+      WHERE id = $13
+      RETURNING *
+    `;
+    const params = [
+      titulo,
+      bairro,
+      parseFloat(valor_chave),
+      parseFloat(saldo_devedor),
+      parcela ? parseFloat(parcela) : null,
+      quartos ? parseInt(quartos) : 1,
+      varanda === true || varanda === 'true',
+      area ? parseInt(area) : null,
+      imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60',
+      descricao || '',
+      status || 'Disponível',
+      parseInt(corretor_id),
+      id
+    ];
+
+    const { rows } = await db.query(queryText, params);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Erro ao atualizar repasse:', err);
+    res.status(500).json({ error: 'Erro ao atualizar repasse.' });
+  }
+};
+
+// Excluir repasse existente
+export const deleteRepasse = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+
+    const repasseCheck = await db.query('SELECT * FROM repasses WHERE id = $1', [id]);
+    if (repasseCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Repasse não encontrado.' });
+    }
+
+    await db.query('DELETE FROM repasses WHERE id = $1', [id]);
+    res.json({ message: 'Repasse excluído com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao excluir repasse:', err);
+    res.status(500).json({ error: 'Erro ao excluir repasse.' });
+  }
+};

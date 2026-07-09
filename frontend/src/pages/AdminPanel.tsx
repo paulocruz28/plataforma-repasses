@@ -8,7 +8,13 @@ import {
   Handshake, 
   BarChart, 
   Printer,
-  User
+  User,
+  Search,
+  Pencil,
+  Trash2,
+  Plus,
+  ArrowLeft,
+  Building
 } from 'lucide-react';
 
 type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile';
@@ -75,7 +81,13 @@ export const AdminPanel: React.FC = () => {
   const [repasseImagem, setRepasseImagem] = useState('');
   const [repasseDescricao, setRepasseDescricao] = useState('');
   const [repasseCorretor, setRepasseCorretor] = useState('');
+  const [repasseStatus, setRepasseStatus] = useState('Disponível');
   const [savingRepasse, setSavingRepasse] = useState(false);
+  
+  // Controle de Visualização e Busca de Repasses (CRUD)
+  const [showRepasseForm, setShowRepasseForm] = useState(false);
+  const [editingRepasseId, setEditingRepasseId] = useState<number | null>(null);
+  const [searchRepasse, setSearchRepasse] = useState('');
 
   // 2. Automação Jurídica
   const [cRepasse, setCRepasse] = useState('');
@@ -111,6 +123,7 @@ export const AdminPanel: React.FC = () => {
       loadContractsData();
     } else if (activeTab === 'new-repasse') {
       loadCorretoresList();
+      loadRepassesData();
     } else if (activeTab === 'profile') {
       const rawCorretor = localStorage.getItem('corretor');
       if (rawCorretor) {
@@ -152,13 +165,17 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const loadContractsData = async () => {
+  const loadRepassesData = async () => {
     try {
       const data = await api.get<Repasse[]>('/repasses');
       setRepasses(data);
     } catch (err) {
       showToast('Erro ao carregar repasses.', 'danger');
     }
+  };
+
+  const loadContractsData = async () => {
+    await loadRepassesData();
   };
 
   const loadCorretoresList = async () => {
@@ -190,8 +207,8 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  // Cadastrar Repasse
-  const handleCreateRepasse = async (e: React.FormEvent) => {
+  // Salvar Repasse (Criar ou Editar)
+  const handleSaveRepasse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repasseTitulo || !repasseBairro || !repasseChave || !repasseSaldo || !repasseCorretor) {
       showToast('Por favor, preencha todos os campos obrigatórios.', 'warning');
@@ -200,21 +217,30 @@ export const AdminPanel: React.FC = () => {
 
     setSavingRepasse(true);
     try {
-      await api.post('/repasses', {
+      const payload = {
         titulo: repasseTitulo,
         bairro: repasseBairro,
         valor_chave: parseCurrencyToNumber(repasseChave),
         saldo_devedor: parseCurrencyToNumber(repasseSaldo),
-        parcela: repasseParcela ? parseCurrencyToNumber(repasseParcela) : undefined,
-        quartos: repasseQuartos,
+        parcela: repasseParcela ? parseCurrencyToNumber(repasseParcela) : null,
+        quartos: parseInt(repasseQuartos),
         varanda: repasseVaranda,
-        area: repasseArea || undefined,
+        area: repasseArea ? parseInt(repasseArea) : null,
         imagem_url: repasseImagem || undefined,
         descricao: repasseDescricao,
-        corretor_id: repasseCorretor
-      });
+        status: repasseStatus,
+        corretor_id: parseInt(repasseCorretor)
+      };
 
-      showToast('Repasse cadastrado e disponível no portal!', 'success');
+      if (editingRepasseId) {
+        await api.put(`/repasses/${editingRepasseId}`, payload);
+        showToast('Repasse atualizado com sucesso!', 'success');
+      } else {
+        await api.post('/repasses', payload);
+        showToast('Repasse cadastrado e disponível no portal!', 'success');
+      }
+
+      // Resetar form e retornar
       setRepasseTitulo('');
       setRepasseBairro('');
       setRepasseChave('');
@@ -226,10 +252,29 @@ export const AdminPanel: React.FC = () => {
       setRepasseImagem('');
       setRepasseDescricao('');
       setRepasseCorretor('');
+      setRepasseStatus('Disponível');
+      setEditingRepasseId(null);
+      setShowRepasseForm(false);
+      loadRepassesData();
     } catch (err) {
-      showToast('Erro ao registrar repasse imobiliário.', 'danger');
+      showToast('Erro ao salvar repasse imobiliário.', 'danger');
     } finally {
       setSavingRepasse(false);
+    }
+  };
+
+  // Excluir Repasse
+  const handleDeleteRepasse = async (id: number) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta oportunidade de repasse? Esta ação é irreversível.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/repasses/${id}`);
+      showToast('Oportunidade de repasse excluída com sucesso.', 'success');
+      loadRepassesData();
+    } catch (err) {
+      showToast('Erro ao excluir repasse.', 'danger');
     }
   };
 
@@ -395,10 +440,13 @@ export const AdminPanel: React.FC = () => {
           </button>
           <button 
             className={`sidebar-menu-item ${activeTab === 'new-repasse' ? 'active' : ''}`}
-            onClick={() => setActiveTab('new-repasse')}
+            onClick={() => {
+              setActiveTab('new-repasse');
+              setShowRepasseForm(false);
+            }}
           >
-            <Key size={18} />
-            Cadastrar Repasse
+            <Building size={18} />
+            Meus Imóveis
           </button>
           <button 
             className={`sidebar-menu-item ${activeTab === 'profile' ? 'active' : ''}`}
@@ -759,172 +807,352 @@ export const AdminPanel: React.FC = () => {
         {/* 4. ABA CADASTRAR REPASSE */}
         {activeTab === 'new-repasse' && (
           <div className="admin-section active">
-            <div className="glass-panel" style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
-              <h2>Cadastrar Oportunidade de Repasse</h2>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '30px' }}>
-                Insira as especificações do repasse imobiliário para listagem pública imediata no portal.
-              </p>
-              
-              <form onSubmit={handleCreateRepasse}>
-                <div className="form-group">
-                  <label>Título do Anúncio *</label>
+            {!showRepasseForm ? (
+              <div className="glass-panel" style={{ padding: '40px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Meus Imóveis</h2>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>
+                      Gerencie as oportunidades de repasse cadastradas no portal ({repasses.length} cadastrados).
+                    </p>
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+                    onClick={() => {
+                      setRepasseTitulo('');
+                      setRepasseBairro('');
+                      setRepasseChave('');
+                      setRepasseSaldo('');
+                      setRepasseParcela('');
+                      setRepasseArea('');
+                      setRepasseQuartos('1');
+                      setRepasseVaranda(false);
+                      setRepasseImagem('');
+                      setRepasseDescricao('');
+                      setRepasseCorretor('');
+                      setRepasseStatus('Disponível');
+                      setEditingRepasseId(null);
+                      setShowRepasseForm(true);
+                    }}
+                  >
+                    <Plus size={18} /> Novo Imóvel
+                  </button>
+                </div>
+
+                {/* Filtro de Busca */}
+                <div style={{ position: 'relative', marginBottom: '24px' }}>
+                  <Search size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
                   <input 
                     type="text" 
                     className="form-control" 
-                    required 
-                    value={repasseTitulo} 
-                    onChange={(e) => setRepasseTitulo(e.target.value)} 
-                    placeholder="Ex: Lindo apartamento com vista para o parque" 
+                    placeholder="Buscar imóveis por título ou bairro..." 
+                    value={searchRepasse}
+                    onChange={(e) => setSearchRepasse(e.target.value)}
+                    style={{ paddingLeft: '45px', maxWidth: '400px' }}
                   />
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Bairro *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
-                      value={repasseBairro} 
-                      onChange={(e) => setRepasseBairro(e.target.value)} 
-                      placeholder="Ex: Aldeota" 
-                    />
+                {/* Listagem */}
+                {repasses.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                    <Building size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
+                    <p>Nenhum imóvel cadastrado no momento.</p>
+                    <p style={{ fontSize: '0.9rem', marginTop: '4px' }}>Clique em "+ Novo Imóvel" para publicar seu primeiro repasse.</p>
                   </div>
-                  <div className="form-group">
-                    <label>Corretor Responsável *</label>
-                    <select 
-                      className="form-control" 
-                      required 
-                      value={repasseCorretor} 
-                      onChange={(e) => setRepasseCorretor(e.target.value)}
-                    >
-                      <option value="">Selecione o Corretor Responsável</option>
-                      {corretores.map(c => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))}
-                    </select>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>Imóvel</th>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>Bairro</th>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>Valor da Chave</th>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>Saldo Devedor</th>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>Status</th>
+                          <th style={{ padding: '12px 16px', color: 'var(--text-secondary)', textAlign: 'right' }}>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {repasses
+                          .filter(r => 
+                            r.titulo.toLowerCase().includes(searchRepasse.toLowerCase()) || 
+                            r.bairro.toLowerCase().includes(searchRepasse.toLowerCase())
+                          )
+                          .map(r => (
+                            <tr key={r.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '16px', fontWeight: 600 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <img 
+                                    src={r.imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=100'} 
+                                    alt={r.titulo} 
+                                    style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                  />
+                                  <span style={{ fontSize: '0.95rem' }}>{r.titulo}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
+                              <td style={{ padding: '16px', fontSize: '0.92rem', fontWeight: 600 }}>{formatCurrency(parseFloat(r.valor_chave))}</td>
+                              <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor))}</td>
+                              <td style={{ padding: '16px' }}>
+                                <span className={`badge ${r.status === 'Disponível' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                                  {r.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button 
+                                    className="btn btn-secondary" 
+                                    style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}
+                                    onClick={() => {
+                                      setRepasseTitulo(r.titulo);
+                                      setRepasseBairro(r.bairro);
+                                      setRepasseChave(formatCurrencyInput(r.valor_chave.toString()));
+                                      setRepasseSaldo(formatCurrencyInput(r.saldo_devedor.toString()));
+                                      setRepasseParcela(r.parcela ? formatCurrencyInput(r.parcela.toString()) : '');
+                                      setRepasseArea(r.area ? r.area.toString() : '');
+                                      setRepasseQuartos(r.quartos ? r.quartos.toString() : '1');
+                                      setRepasseVaranda(r.varanda || false);
+                                      setRepasseImagem(r.imagem_url || '');
+                                      setRepasseDescricao(r.descricao || '');
+                                      setRepasseCorretor(r.corretor_id ? r.corretor_id.toString() : '');
+                                      setRepasseStatus(r.status || 'Disponível');
+                                      setEditingRepasseId(r.id);
+                                      setShowRepasseForm(true);
+                                    }}
+                                  >
+                                    <Pencil size={14} /> Editar
+                                  </button>
+                                  <button 
+                                    className="btn btn-secondary" 
+                                    style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                                    onClick={() => handleDeleteRepasse(r.id)}
+                                  >
+                                    <Trash2 size={14} /> Excluir
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="glass-panel" style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                      {editingRepasseId ? 'Editar Oportunidade' : 'Cadastrar Oportunidade'}
+                    </h2>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginTop: '2px' }}>
+                      Insira as especificações do imóvel para o portal.
+                    </p>
+                  </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '0.9rem' }}
+                    onClick={() => setShowRepasseForm(false)}
+                  >
+                    <ArrowLeft size={16} /> Voltar para a lista
+                  </button>
                 </div>
-
-                <div className="form-row">
+                
+                <form onSubmit={handleSaveRepasse}>
                   <div className="form-group">
-                    <label>Valor da Chave (Ágio) *</label>
+                    <label>Título do Anúncio *</label>
                     <input 
                       type="text" 
                       className="form-control" 
                       required 
-                      value={repasseChave} 
-                      onChange={(e) => setRepasseChave(formatCurrencyInput(e.target.value))} 
-                      placeholder="Ex: R$ 50.000,00" 
+                      value={repasseTitulo} 
+                      onChange={(e) => setRepasseTitulo(e.target.value)} 
+                      placeholder="Ex: Lindo apartamento com vista para o parque" 
                     />
                   </div>
-                  <div className="form-group">
-                    <label>Saldo Devedor do Financiamento *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
-                      value={repasseSaldo} 
-                      onChange={(e) => setRepasseSaldo(formatCurrencyInput(e.target.value))} 
-                      placeholder="Ex: R$ 120.000,00" 
-                    />
-                  </div>
-                </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Valor da Parcela Mensal</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      value={repasseParcela} 
-                      onChange={(e) => setRepasseParcela(formatCurrencyInput(e.target.value))} 
-                      placeholder="Ex: R$ 850,00" 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Área Privativa (m²)</label>
-                    <input 
-                      type="number" 
-                      className="form-control" 
-                      value={repasseArea} 
-                      onChange={(e) => setRepasseArea(e.target.value)} 
-                      placeholder="Ex: 85" 
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Quantidade de Quartos</label>
-                    <select 
-                      className="form-control" 
-                      value={repasseQuartos} 
-                      onChange={(e) => setRepasseQuartos(e.target.value)}
-                    >
-                      <option value="1">1 Quarto</option>
-                      <option value="2">2 Quartos</option>
-                      <option value="3">3 Quartos</option>
-                      <option value="4">4 ou mais Quartos</option>
-                    </select>
-                  </div>
-                  <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
-                    <label className="toggle-switch">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Bairro *</label>
                       <input 
-                        type="checkbox" 
-                        checked={repasseVaranda} 
-                        onChange={(e) => setRepasseVaranda(e.target.checked)} 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={repasseBairro} 
+                        onChange={(e) => setRepasseBairro(e.target.value)} 
+                        placeholder="Ex: Aldeota" 
                       />
-                      <span className="switch-slider"></span>
-                      <span>Possui Varanda</span>
-                    </label>
+                    </div>
+                    <div className="form-group">
+                      <label>Corretor Responsável *</label>
+                      <select 
+                        className="form-control" 
+                        required 
+                        value={repasseCorretor} 
+                        onChange={(e) => setRepasseCorretor(e.target.value)}
+                      >
+                        <option value="">Selecione o Corretor Responsável</option>
+                        {corretores.map(c => (
+                          <option key={c.id} value={c.id}>{c.nome}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label>URL da Imagem do Imóvel</label>
-                  <input 
-                    type="url" 
-                    className="form-control" 
-                    value={repasseImagem} 
-                    onChange={(e) => setRepasseImagem(e.target.value)} 
-                    placeholder="Ex: https://images.unsplash.com/..." 
-                  />
-                </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Valor da Chave (Ágio) *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={repasseChave} 
+                        onChange={(e) => setRepasseChave(formatCurrencyInput(e.target.value))} 
+                        placeholder="Ex: R$ 50.000,00" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Saldo Devedor do Financiamento *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={repasseSaldo} 
+                        onChange={(e) => setRepasseSaldo(formatCurrencyInput(e.target.value))} 
+                        placeholder="Ex: R$ 120.000,00" 
+                      />
+                    </div>
+                  </div>
 
-                <div className="form-group">
-                  <label>Descrição do Imóvel</label>
-                  <textarea 
-                    className="form-control" 
-                    rows={4} 
-                    value={repasseDescricao} 
-                    onChange={(e) => setRepasseDescricao(e.target.value)} 
-                    placeholder="Descreva os detalhes adicionais, área de lazer, diferenciais, etc." 
-                  />
-                </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Valor da Parcela Mensal</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={repasseParcela} 
+                        onChange={(e) => setRepasseParcela(formatCurrencyInput(e.target.value))} 
+                        placeholder="Ex: R$ 850,00" 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Área Privativa (m²)</label>
+                      <input 
+                        type="number" 
+                        className="form-control" 
+                        value={repasseArea} 
+                        onChange={(e) => setRepasseArea(e.target.value)} 
+                        placeholder="Ex: 85" 
+                      />
+                    </div>
+                  </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingRepasse}>
-                    {savingRepasse ? 'Publicando...' : 'Publicar Anúncio no Marketplace'}
-                  </button>
-                  <button type="reset" className="btn btn-secondary" onClick={() => {
-                    setRepasseTitulo('');
-                    setRepasseBairro('');
-                    setRepasseChave('');
-                    setRepasseSaldo('');
-                    setRepasseParcela('');
-                    setRepasseArea('');
-                    setRepasseQuartos('1');
-                    setRepasseVaranda(false);
-                    setRepasseImagem('');
-                    setRepasseDescricao('');
-                    setRepasseCorretor('');
-                  }}>
-                    Limpar Formulário
-                  </button>
-                </div>
-              </form>
-            </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Quantidade de Quartos</label>
+                      <select 
+                        className="form-control" 
+                        value={repasseQuartos} 
+                        onChange={(e) => setRepasseQuartos(e.target.value)}
+                      >
+                        <option value="1">1 Quarto</option>
+                        <option value="2">2 Quartos</option>
+                        <option value="3">3 Quartos</option>
+                        <option value="4">4 ou mais Quartos</option>
+                      </select>
+                    </div>
+                    
+                    {editingRepasseId ? (
+                      <div className="form-group">
+                        <label>Status do Imóvel</label>
+                        <select 
+                          className="form-control" 
+                          value={repasseStatus} 
+                          onChange={(e) => setRepasseStatus(e.target.value)}
+                        >
+                          <option value="Disponível">Disponível</option>
+                          <option value="Vendido">Vendido</option>
+                          <option value="Indisponível">Indisponível</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
+                        <label className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            checked={repasseVaranda} 
+                            onChange={(e) => setRepasseVaranda(e.target.checked)} 
+                          />
+                          <span className="switch-slider"></span>
+                          <span>Possui Varanda</span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {editingRepasseId && (
+                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', marginTop: '10px', marginBottom: '20px' }}>
+                      <label className="toggle-switch">
+                        <input 
+                          type="checkbox" 
+                          checked={repasseVaranda} 
+                          onChange={(e) => setRepasseVaranda(e.target.checked)} 
+                        />
+                        <span className="switch-slider"></span>
+                        <span>Possui Varanda</span>
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label>URL da Imagem do Imóvel</label>
+                    <input 
+                      type="url" 
+                      className="form-control" 
+                      value={repasseImagem} 
+                      onChange={(e) => setRepasseImagem(e.target.value)} 
+                      placeholder="Ex: https://images.unsplash.com/..." 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Descrição do Imóvel</label>
+                    <textarea 
+                      className="form-control" 
+                      rows={4} 
+                      value={repasseDescricao} 
+                      onChange={(e) => setRepasseDescricao(e.target.value)} 
+                      placeholder="Descreva os detalhes adicionais, área de lazer, diferenciais, etc." 
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
+                    <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingRepasse}>
+                      {savingRepasse ? 'Aguarde...' : (editingRepasseId ? 'Salvar Alterações' : 'Publicar Anúncio no Marketplace')}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      setRepasseTitulo('');
+                      setRepasseBairro('');
+                      setRepasseChave('');
+                      setRepasseSaldo('');
+                      setRepasseParcela('');
+                      setRepasseArea('');
+                      setRepasseQuartos('1');
+                      setRepasseVaranda(false);
+                      setRepasseImagem('');
+                      setRepasseDescricao('');
+                      setRepasseCorretor('');
+                      setRepasseStatus('Disponível');
+                      setEditingRepasseId(null);
+                      setShowRepasseForm(false);
+                    }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
         )}
 

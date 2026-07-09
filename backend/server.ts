@@ -53,6 +53,8 @@ app.get('/api/repasses', repassesController.getRepasses);
 app.get('/api/repasses/:id', repassesController.getRepasseById);
 app.get('/api/repasses/corretor/:corretorId', repassesController.getRepassesByCorretor);
 app.post('/api/repasses', authMiddleware, repassesController.createRepasse);
+app.put('/api/repasses/:id', authMiddleware, repassesController.updateRepasse);
+app.delete('/api/repasses/:id', authMiddleware, repassesController.deleteRepasse);
 app.get('/api/corretores', authMiddleware, repassesController.getCorretores);
 
 // Leads
