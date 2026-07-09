@@ -1,5 +1,5 @@
 # Stage 1: Build do Frontend React + TypeScript
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 WORKDIR /usr/src/app/frontend
 COPY frontend/package*.json ./
 RUN npm install
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build e Setup do Backend Express (TypeScript)
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Copiar dependências do backend
