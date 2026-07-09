@@ -150,3 +150,24 @@ Os corretores agora possuem controle total sobre as oportunidades que publicam n
 * **Formulário Híbrido:** Criação e edição integradas no mesmo formulário, permitindo inclusive alterar o status do imóvel (*Disponível, Vendido, Indisponível*) para retirá-lo automaticamente do marketplace público.
 * **Exclusão Segura:** Botão de remoção definitiva com confirmação preventiva, mantendo a integridade dos leads associados através do mecanismo de chave estrangeira `ON DELETE SET NULL`.
 
+---
+
+## 👥 Gestão de Equipes e Níveis de Acesso (RBAC)
+
+A plataforma agora suporta o modelo corporativo B2B (multitenancy por corretores), isolando com segurança as informações de clientes e captações de cada funcionário de forma 100% resiliente:
+*   **Papel Corretor (`corretor`):**
+    *   No CRM, enxerga apenas seus próprios leads de captação.
+    *   No faturamento, visualiza apenas o VGV e a comissão de suas próprias transações.
+    *   Em "Meus Imóveis", visualiza apenas as propriedades que ele captou.
+*   **Papel Administrador (`admin`):**
+    *   Gerenciamento global de toda a equipe na nova aba **Gestão de Equipe** (cadastro de corretores, alteração de dados, ativação/desativação de contas).
+    *   Acesso consolidado ao faturamento e performance de vendas de todo o time de corretores.
+    *   Controle irrestrito sobre todos os leads e imóveis cadastrados no sistema.
+
+---
+
+## 📈 Calculadora Financeira e CRM Premium
+
+*   **Calculadora de Fechamento:** Modal interativo acessível em "Meus Imóveis" que exibe em tempo real o cálculo matemático detalhado de cada repasse (VGV Total, Comissão do Corretor, Taxa de Plataforma de 1% e o Saldo Líquido do Vendedor).
+*   **CRM Kanban Animado:** Interface moderna com colunas em tons pastel claros, cartões reativos com zoom e elevação 3D ao passar o mouse, molduras com gradiente metálico e brilho sweep para cards vendidos, e **chuva de confetes** instantânea ao fechar vendas no sistema.
+
