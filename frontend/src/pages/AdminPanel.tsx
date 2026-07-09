@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { api, DashboardData, Lead, Repasse } from '../services/api';
+import { api } from '../services/api';
+import type { DashboardData, Lead, Repasse } from '../services/api';
 import { useToast } from '../components/Toast';
 import { 
   TrendingUp, 
   Key, 
   Handshake, 
   BarChart, 
-  PlusCircle, 
-  Briefcase, 
-  Search, 
-  Printer, 
-  Loader 
+  Printer
 } from 'lucide-react';
 
 type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse';
@@ -393,7 +390,7 @@ export const AdminPanel: React.FC = () => {
                             <div className="lead-contact">📞 {lead.telefone}</div>
                             <div className="lead-property">🏠 {lead.repasse_titulo || 'Interesse Geral'} ({lead.repasse_bairro || 'N/A'})</div>
                             <div className="lead-footer">
-                              <span className="lead-broker-tag">👤 {lead.corretor_name}</span>
+                              <span className="lead-broker-tag">👤 {lead.corretor_nome}</span>
                               <select 
                                 className="status-select" 
                                 value={lead.status}

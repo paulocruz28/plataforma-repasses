@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api, Repasse } from '../services/api';
+import { api } from '../services/api';
+import type { Repasse } from '../services/api';
 import { RepasseCard } from '../components/RepasseCard';
 import { useToast } from '../components/Toast';
 
@@ -133,7 +134,7 @@ export const Marketplace: React.FC = () => {
 
       closeLeadModal();
       showToast(
-        `Obrigado! O corretor <b>${res.lead.corretor_name}</b> foi acionado na roleta e entrará em contato.`,
+        `Obrigado! O corretor <b>${res.lead.corretor_nome}</b> foi acionado na roleta e entrará em contato.`,
         'success'
       );
     } catch (err) {
@@ -288,7 +289,7 @@ export const Marketplace: React.FC = () => {
               Preencha seus dados de contato. Nossa roleta automática irá direcionar o seu atendimento para o corretor responsável imediatamente.
             </p>
             <form onSubmit={handleLeadSubmit}>
-              <div class="form-group">
+              <div className="form-group">
                 <label>Seu Nome *</label>
                 <input 
                   type="text" 
@@ -299,7 +300,7 @@ export const Marketplace: React.FC = () => {
                   placeholder="Ex: João da Silva" 
                 />
               </div>
-              <div class="form-group">
+              <div className="form-group">
                 <label>Telefone (WhatsApp) *</label>
                 <input 
                   type="tel" 
@@ -310,7 +311,7 @@ export const Marketplace: React.FC = () => {
                   placeholder="Ex: (85) 99999-9999" 
                 />
               </div>
-              <div class="form-group">
+              <div className="form-group">
                 <label>E-mail (Opcional)</label>
                 <input 
                   type="email" 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Repasse } from '../services/api';
+import type { Repasse } from '../services/api';
 import { Share2 } from 'lucide-react';
 
 interface RepasseCardProps {
