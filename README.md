@@ -114,3 +114,16 @@ Para colocar a plataforma online e disponível para uso real usando os serviços
 5.  Clique em **Create Web Service**.
 
 O Render irá disparar o build do container Docker, baixando a imagem do Node 20, compilando o React, o TypeScript do Express e inicializando o serviço na nuvem de forma 100% automatizada!
+
+---
+
+## 🎨 Layout Premium & Ajustes de UI/UX (Melhorias de Design)
+
+Para entregar uma experiência de uso profissional e fluida, foram feitos dois grandes ajustes de design:
+
+1. **Organização Horizontal de Anúncios (Grid de Repasses):**
+   * Os cards de anúncio que antes ficavam empilhados verticalmente agora se organizam de forma elegante lado a lado usando CSS Grid (`grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))`). O layout se ajusta dinamicamente ao tamanho da tela (celular, tablet ou monitor).
+2. **Painel do Corretor com Sidebar Lateral (Navegação Premium):**
+   * A navegação superior simples foi substituída por uma **Barra Lateral Esquerda (Sidebar)** no painel `/admin`, alinhando a identidade visual com o padrão estético de sistemas administrativos modernos (como o da Clínica Elizabeth).
+   * Os botões de navegação agora são maiores, contam com ícones reativos (`lucide-react`) e destacam de forma premium a aba ativa.
+

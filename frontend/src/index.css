@@ -242,15 +242,266 @@ body {
   .printable-area, .printable-area * {
     visibility: visible;
   }
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: auto;
-    overflow: visible;
-    background: none;
-    color: #000000;
-    border: none;
   }
 }
+
+/* ============================================================================
+   >>> ESTILOS DO PORTAL / MARKETPLACE DE REPASSES
+   ============================================================================ */
+
+.repasses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 40px auto 80px;
+  padding: 0 20px;
+}
+
+.repasse-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  transition: var(--transition);
+}
+
+.repasse-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+.card-image-wrapper {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.card-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition);
+}
+
+.repasse-card:hover .card-image-wrapper img {
+  transform: scale(1.05);
+}
+
+.card-badge {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+.card-details {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 15px;
+}
+
+.card-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.card-specs {
+  display: flex;
+  gap: 15px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+}
+
+.card-financials {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.financial-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.financial-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.financial-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.financial-value.highlight {
+  color: var(--primary-hover);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 15px;
+  margin-top: auto;
+}
+
+.broker-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.broker-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.broker-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   >>> SIDEBAR DO PAINEL DO CORRETOR (ADMIN)
+   ============================================================================ */
+
+.admin-layout {
+  display: flex;
+  min-height: calc(100vh - 80px);
+}
+
+.admin-sidebar {
+  width: 300px;
+  border-radius: 0 18px 18px 0 !important;
+  border-left: none !important;
+  border-top: none !important;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 20px;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 20px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sidebar-menu-item svg {
+  transition: var(--transition);
+}
+
+.sidebar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .sidebar-menu-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-menu-item.active {
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--primary-hover);
+  border-color: rgba(79, 70, 229, 0.25);
+  font-weight: 600;
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+
+[data-theme="light"] .sidebar-menu-item.active {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--primary-hover);
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+.sidebar-menu-item.active svg {
+  color: var(--primary-hover);
+  transform: scale(1.1);
+}
+
+.admin-main-content {
+  flex-grow: 1;
+  padding: 45px 50px;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   >>> DASHBOARD DE VGV - CARDS DE MÉTRICAS
+   ============================================================================ */
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.metric-card {
+  padding: 24px;
+  border-left: 4px solid var(--primary);
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.metric-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.metric-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+

@@ -242,37 +242,48 @@ export const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Sub-navegação do Admin */}
-      <nav className="admin-nav" style={{ display: 'flex', gap: '16px', margin: '30px auto 0', padding: '0 20px', maxWidth: '1200px' }}>
-        <button 
-          className={`admin-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          Dashboard (VGV)
-        </button>
-        <button 
-          className={`admin-tab-btn ${activeTab === 'crm' ? 'active' : ''}`}
-          onClick={() => setActiveTab('crm')}
-        >
-          CRM & Leads
-        </button>
-        <button 
-          className={`admin-tab-btn ${activeTab === 'contracts' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contracts')}
-        >
-          Automação Jurídica
-        </button>
-        <button 
-          className={`admin-tab-btn ${activeTab === 'new-repasse' ? 'active' : ''}`}
-          onClick={() => setActiveTab('new-repasse')}
-        >
-          Cadastrar Repasse
-        </button>
-      </nav>
+    <div className="admin-layout">
+      {/* Sidebar do Admin */}
+      <aside className="admin-sidebar glass-panel">
+        <div className="sidebar-brand">
+          <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.1em' }}>Área de Repasses</span>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '6px' }}>Painel Executivo</h3>
+        </div>
+
+        <nav className="sidebar-menu">
+          <button 
+            className={`sidebar-menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <BarChart size={18} />
+            Dashboard (VGV)
+          </button>
+          <button 
+            className={`sidebar-menu-item ${activeTab === 'crm' ? 'active' : ''}`}
+            onClick={() => setActiveTab('crm')}
+          >
+            <TrendingUp size={18} />
+            CRM & Leads
+          </button>
+          <button 
+            className={`sidebar-menu-item ${activeTab === 'contracts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('contracts')}
+          >
+            <Handshake size={18} />
+            Automação Jurídica
+          </button>
+          <button 
+            className={`sidebar-menu-item ${activeTab === 'new-repasse' ? 'active' : ''}`}
+            onClick={() => setActiveTab('new-repasse')}
+          >
+            <Key size={18} />
+            Cadastrar Repasse
+          </button>
+        </nav>
+      </aside>
 
       {/* Conteúdo principal */}
-      <main className="admin-container" style={{ maxWidth: '1200px', margin: '30px auto 80px', padding: '0 20px' }}>
+      <main className="admin-main-content">
         
         {/* 1. ABA DASHBOARD */}
         {activeTab === 'dashboard' && (
