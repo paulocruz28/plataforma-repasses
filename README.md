@@ -119,11 +119,24 @@ O Render irá disparar o build do container Docker, baixando a imagem do Node 20
 
 ## 🎨 Layout Premium & Ajustes de UI/UX (Melhorias de Design)
 
-Para entregar uma experiência de uso profissional e fluida, foram feitos dois grandes ajustes de design:
+Para entregar uma experiência de uso profissional e fluida, o design foi totalmente otimizado seguindo referências de ponta do mercado de corretagem (estilo "Mapa dos Imóveis"):
 
-1. **Organização Horizontal de Anúncios (Grid de Repasses):**
-   * Os cards de anúncio que antes ficavam empilhados verticalmente agora se organizam de forma elegante lado a lado usando CSS Grid (`grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))`). O layout se ajusta dinamicamente ao tamanho da tela (celular, tablet ou monitor).
-2. **Painel do Corretor com Sidebar Lateral (Navegação Premium):**
-   * A navegação superior simples foi substituída por uma **Barra Lateral Esquerda (Sidebar)** no painel `/admin`, alinhando a identidade visual com o padrão estético de sistemas administrativos modernos (como o da Clínica Elizabeth).
-   * Os botões de navegação agora são maiores, contam com ícones reativos (`lucide-react`) e destacam de forma premium a aba ativa.
+1. **Tema Claro Padrão (Light Mode):**
+   * O site agora inicializa por padrão em um tema claro, limpo e profissional, utilizando tons de azul vibrante nos botões principais e painéis com cantos arredondados de sombras suaves. O seletor de tema continua disponível no cabeçalho.
+2. **Organização Horizontal de Anúncios (Grid de Repasses):**
+   * Os cards de anúncio se organizam de forma elegante lado a lado usando CSS Grid (`grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))`), se ajustando dinamicamente a celulares, tablets e computadores.
+3. **Painel do Corretor com Sidebar Lateral (Navegação Premium):**
+   * A navegação superior simples foi substituída por uma **Barra Lateral Esquerda (Sidebar)** no painel `/admin`, com botões maiores e ícones reativos (`lucide-react`).
+4. **Foto de Perfil e Nome de Exibição (Avatar):**
+   * O cabeçalho exibe no canto superior direito um avatar circular com a foto do corretor logado (ou sua inicial de nome caso esteja sem imagem), garantindo um visual personalizado ao corretor ativo.
+
+---
+
+## 🔒 Segurança e Autenticação
+
+Para proteger as informações do CRM e emissão de minutas, a área administrativa agora exige autenticação:
+* **Autenticação Stateless (JWT):** Geração de tokens Web JSON válidos por 7 dias, armazenados no local storage do navegador e injetados nos headers da API.
+* **Criptografia de Senhas (bcryptjs):** Hash de senhas unidirecional seguro no banco de dados.
+* **Código de Acesso para Cadastros:** O cadastro de novos corretores parceiros exige a chave administrativa de segurança `REPASSES2026`.
+* **Edição de Perfil:** Na aba **Meu Perfil**, o corretor pode alterar seu nome, escolher seu nome de exibição, alterar telefone de contato ou atualizar sua senha com upload de fotos de perfil de até 1MB convertidas em Base64.
 
