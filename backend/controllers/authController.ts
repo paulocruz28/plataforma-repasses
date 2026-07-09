@@ -124,3 +124,58 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   }
   res.json({ corretor: authReq.user });
 };
+
+// Atualizar Perfil do Corretor
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.user) {
+    res.status(401).send('Não autorizado.');
+    return;
+  }
+  const userId = authReq.user.id;
+  const { nome, nome_exibicao, telefone, foto_url, senha } = req.body;
+
+  if (!nome) {
+    res.status(400).send('Nome completo é obrigatório.');
+    return;
+  }
+
+  try {
+    let queryText = 'UPDATE corretores SET nome = $1, nome_exibicao = $2, telefone = $3, foto_url = $4';
+    let queryParams: any[] = [nome.trim(), nome_exibicao ? nome_exibicao.trim() : null, telefone ? telefone.trim() : null, foto_url || null];
+
+    if (senha && senha.trim()) {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(senha, salt);
+      queryText += ', senha_hash = $5 WHERE id = $6 RETURNING id, nome, email, telefone, nome_exibicao, foto_url';
+      queryParams.push(hash, userId);
+    } else {
+      queryText += ' WHERE id = $5 RETURNING id, nome, email, telefone, nome_exibicao, foto_url';
+      queryParams.push(userId);
+    }
+
+    const result = await db.query(queryText, queryParams);
+    const updatedCorretor = result.rows[0];
+
+    // Gerar novo Token JWT com os dados atualizados do perfil
+    const token = jwt.sign(
+      { 
+        id: updatedCorretor.id, 
+        email: updatedCorretor.email, 
+        nome: updatedCorretor.nome,
+        nome_exibicao: updatedCorretor.nome_exibicao,
+        foto_url: updatedCorretor.foto_url
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      corretor: updatedCorretor
+    });
+  } catch (err) {
+    console.error('>>> [AUTH] Erro ao atualizar perfil:', err);
+    res.status(500).send('Erro interno do servidor.');
+  }
+};

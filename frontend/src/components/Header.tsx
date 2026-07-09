@@ -8,8 +8,8 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
-  const [corretor, setCorretor] = useState<{ id: number; nome: string } | null>(null);
+  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'light');
+  const [corretor, setCorretor] = useState<{ id: number; nome: string; nome_exibicao?: string; foto_url?: string } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -95,9 +95,34 @@ export const Header: React.FC = () => {
 
         {corretor && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', marginLeft: '4px' }}>
-            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-              Olá, <b style={{ color: 'var(--text-primary)' }}>{corretor.nome}</b>
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {corretor.foto_url ? (
+                <img 
+                  src={corretor.foto_url} 
+                  alt={corretor.nome_exibicao || corretor.nome} 
+                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-hover)' }} 
+                />
+              ) : (
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--primary)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '700',
+                  fontSize: '0.95rem',
+                  boxShadow: '0 2px 8px var(--primary-glow)'
+                }}>
+                  {(corretor.nome_exibicao || corretor.nome).trim().charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                Olá, <b style={{ color: 'var(--text-primary)' }}>{corretor.nome_exibicao || corretor.nome}</b>
+              </span>
+            </div>
             <button 
               className="btn btn-secondary" 
               onClick={handleLogout} 

@@ -46,6 +46,7 @@ app.use(express.urlencoded({ extended: true }));
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/register', authController.register);
 app.get('/api/auth/me', authMiddleware, authController.me);
+app.put('/api/auth/profile', authMiddleware, authController.updateProfile);
 
 // Repasses
 app.get('/api/repasses', repassesController.getRepasses);

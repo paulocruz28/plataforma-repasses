@@ -24,13 +24,17 @@ export const initDb = async (): Promise<void> => {
         telefone VARCHAR(20),
         ativo BOOLEAN DEFAULT TRUE,
         senha_hash VARCHAR(255),
+        nome_exibicao VARCHAR(100),
+        foto_url TEXT,
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // Migração automática e resiliente para adicionar senha_hash se a tabela já existir
+    // Migração automática e resiliente para adicionar senha_hash, nome_exibicao e foto_url se a tabela já existir
     await client.query(`
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(255);
+      ALTER TABLE corretores ADD COLUMN IF NOT EXISTS nome_exibicao VARCHAR(100);
+      ALTER TABLE corretores ADD COLUMN IF NOT EXISTS foto_url TEXT;
     `);
 
     // 2. Tabela de Repasses

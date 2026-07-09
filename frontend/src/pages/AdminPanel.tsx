@@ -7,10 +7,11 @@ import {
   Key, 
   Handshake, 
   BarChart, 
-  Printer
+  Printer,
+  User
 } from 'lucide-react';
 
-type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse';
+type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -18,6 +19,15 @@ const formatCPF = (value: string) => {
   if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
   if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
 export const AdminPanel: React.FC = () => {
@@ -58,6 +68,14 @@ export const AdminPanel: React.FC = () => {
   const [cBairroEndereco, setCBairroEndereco] = useState('');
   const [cComplemento, setCComplemento] = useState('');
   const [certStatus, setCertStatus] = useState<'idle' | 'checking_sefin' | 'checking_onr' | 'success' | 'error'>('idle');
+
+  // 3. Perfil do Corretor
+  const [pNome, setPNome] = useState('');
+  const [pNomeExibicao, setPNomeExibicao] = useState('');
+  const [pTelefone, setPTelefone] = useState('');
+  const [pFotoUrl, setPFotoUrl] = useState('');
+  const [pSenha, setPSenha] = useState('');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const [sefinDetail, setSefinDetail] = useState('SEFIN (Prefeitura)');
   const [onrDetail, setOnrDetail] = useState('ONR (Cartórios)');
   const [generatedContract, setGeneratedContract] = useState('');
@@ -73,6 +91,20 @@ export const AdminPanel: React.FC = () => {
       loadContractsData();
     } else if (activeTab === 'new-repasse') {
       loadCorretoresList();
+    } else if (activeTab === 'profile') {
+      const rawCorretor = localStorage.getItem('corretor');
+      if (rawCorretor) {
+        try {
+          const corretorObj = JSON.parse(rawCorretor);
+          setPNome(corretorObj.nome || '');
+          setPNomeExibicao(corretorObj.nome_exibicao || '');
+          setPTelefone(corretorObj.telefone || '');
+          setPFotoUrl(corretorObj.foto_url || '');
+          setPSenha('');
+        } catch (e) {
+          console.error(e);
+        }
+      }
     }
   }, [activeTab]);
 
@@ -256,6 +288,56 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  // Atualizar Perfil do Corretor
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pNome.trim()) {
+      showToast('O nome completo é obrigatório.', 'warning');
+      return;
+    }
+
+    setUpdatingProfile(true);
+    try {
+      const data = await api.put<{ token: string; corretor: any }>('/auth/profile', {
+        nome: pNome,
+        nome_exibicao: pNomeExibicao || undefined,
+        telefone: pTelefone || undefined,
+        foto_url: pFotoUrl || undefined,
+        senha: pSenha || undefined
+      });
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('corretor', JSON.stringify(data.corretor));
+      showToast('Perfil atualizado com sucesso!', 'success');
+      
+      // Pequeno timeout e reload para sincronizar o avatar e nome no Header
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      showToast(err.message || 'Erro ao atualizar perfil.', 'danger');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  // Uploader de imagem convertido para Base64
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) { // 1MB limite
+      showToast('A imagem de perfil deve ter menos de 1MB.', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPFotoUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
@@ -297,6 +379,13 @@ export const AdminPanel: React.FC = () => {
           >
             <Key size={18} />
             Cadastrar Repasse
+          </button>
+          <button 
+            className={`sidebar-menu-item ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <User size={18} />
+            Meu Perfil
           </button>
         </nav>
       </aside>
@@ -812,6 +901,163 @@ export const AdminPanel: React.FC = () => {
                     setRepasseCorretor('');
                   }}>
                     Limpar Formulário
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 5. ABA MEU PERFIL */}
+        {activeTab === 'profile' && (
+          <div className="admin-section active">
+            <div className="glass-panel" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '8px' }}>Meu Perfil</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>
+                Personalize suas informações públicas, senha de acesso e foto de perfil.
+              </p>
+
+              <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                {/* Layout em 2 colunas para foto e campos */}
+                <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+                  
+                  {/* Coluna da Foto de Perfil */}
+                  <div style={{ 
+                    flex: '1 1 200px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    gap: '20px',
+                    borderRight: '1px solid var(--border-color)',
+                    paddingRight: '20px'
+                  }}>
+                    <label style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>FOTO DE PERFIL</label>
+                    
+                    {pFotoUrl ? (
+                      <div style={{ position: 'relative' }}>
+                        <img 
+                          src={pFotoUrl} 
+                          alt="Previsualização" 
+                          style={{ width: '150px', height: '150px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--primary-hover)', boxShadow: 'var(--shadow-md)' }} 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setPFotoUrl('')}
+                          className="btn btn-secondary" 
+                          style={{ 
+                            position: 'absolute', 
+                            bottom: '0', 
+                            right: '0', 
+                            borderRadius: '50%', 
+                            width: '36px', 
+                            height: '36px', 
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderColor: 'var(--danger)',
+                            color: 'var(--danger)',
+                            background: 'var(--panel-bg)'
+                          }}
+                          title="Remover Foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{
+                        width: '150px',
+                        height: '150px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary)',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        fontSize: '3.5rem',
+                        boxShadow: '0 8px 24px var(--primary-glow)'
+                      }}>
+                        {pNome.trim().charAt(0).toUpperCase() || 'C'}
+                      </div>
+                    )}
+                    
+                    <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
+                      <button type="button" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
+                        Escolher Imagem
+                      </button>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleImageChange}
+                        style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          opacity: 0,
+                          cursor: 'pointer',
+                          width: '100%',
+                          height: '100%'
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                      Formatos aceitos: JPG, PNG. Limite de 1MB.
+                    </span>
+                  </div>
+
+                  {/* Coluna dos Dados */}
+                  <div style={{ flex: '2 1 400px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Nome Completo *</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        required 
+                        value={pNome} 
+                        onChange={(e) => setPNome(e.target.value)} 
+                        placeholder="Seu nome completo" 
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Nome de Exibição (Como quer ser chamado)</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={pNomeExibicao} 
+                        onChange={(e) => setPNomeExibicao(e.target.value)} 
+                        placeholder="Ex: Gabriel David" 
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Telefone (WhatsApp)</label>
+                      <input 
+                        type="tel" 
+                        className="form-control" 
+                        value={pTelefone} 
+                        onChange={(e) => setPTelefone(formatPhone(e.target.value))} 
+                        placeholder="Ex: (85) 9 9999-9999" 
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Nova Senha (Deixe em branco para manter a atual)</label>
+                      <input 
+                        type="password" 
+                        className="form-control" 
+                        value={pSenha} 
+                        onChange={(e) => setPSenha(e.target.value)} 
+                        placeholder="Digite se deseja alterar a senha" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '24px' }}>
+                  <button type="submit" className="btn btn-primary" style={{ minWidth: '180px', height: '45px' }} disabled={updatingProfile}>
+                    {updatingProfile ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </form>
