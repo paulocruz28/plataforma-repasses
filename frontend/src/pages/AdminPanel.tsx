@@ -244,11 +244,11 @@ export const AdminPanel: React.FC = () => {
 
       }, 1000);
 
-    } catch (err) {
+    } catch (err: any) {
       setCertStatus('error');
-      setSefinDetail('Erro de conexão ou timeout na SEFIN.');
-      setOnrDetail('Erro de conexão na ONR.');
-      showToast('Timeout ou falha na integração governamental.', 'danger');
+      setSefinDetail(`Falha na consulta municipal: ${err.message || 'Erro de conexão'}`);
+      setOnrDetail('Consulta cartorária cancelada devido a erro prévio.');
+      showToast(err.message || 'Timeout ou falha na integração governamental.', 'danger');
     }
   };
 
