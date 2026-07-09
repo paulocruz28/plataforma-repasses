@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: repasses_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -19,7 +19,7 @@ services:
     container_name: repasses_web_app
     restart: always
     ports:
-      - "3000:3000"
+      - "4000:3000"
     environment:
       PORT: 3000
       DATABASE_URL: postgres://postgres:postgres@db:5432/repasses_db
