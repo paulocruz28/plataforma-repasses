@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { Pool, PoolClient } from 'pg';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -22,8 +23,14 @@ export const initDb = async (): Promise<void> => {
         email VARCHAR(100) UNIQUE NOT NULL,
         telefone VARCHAR(20),
         ativo BOOLEAN DEFAULT TRUE,
+        senha_hash VARCHAR(255),
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Migração automática e resiliente para adicionar senha_hash se a tabela já existir
+    await client.query(`
+      ALTER TABLE corretores ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(255);
     `);
 
     // 2. Tabela de Repasses
@@ -63,15 +70,24 @@ export const initDb = async (): Promise<void> => {
     console.log('>>> [DB] Tabelas verificadas/criadas com sucesso.');
 
     // 4. Semeadura de Dados Fictícios (Seed)
+    const defaultPassword = '123456';
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(defaultPassword, salt);
+
+    // Garantir que todos os corretores existentes tenham uma senha criptografada se a coluna estiver nula
+    await client.query(`
+      UPDATE corretores SET senha_hash = $1 WHERE senha_hash IS NULL;
+    `, [hash]);
+
     const corretoresCount = await client.query('SELECT COUNT(*) FROM corretores');
     if (parseInt(corretoresCount.rows[0].count) === 0) {
       console.log('>>> [DB] Inserindo corretores padrão...');
       await client.query(`
-        INSERT INTO corretores (nome, email, telefone) VALUES 
-        ('Gabriel Souza', 'gabriel@repasses.com', '(85) 99999-1111'),
-        ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222'),
-        ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333');
-      `);
+        INSERT INTO corretores (nome, email, telefone, senha_hash) VALUES 
+        ('Gabriel Souza', 'gabriel@repasses.com', '(85) 99999-1111', $1),
+        ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222', $1),
+        ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333', $1);
+      `, [hash]);
     }
 
     const repassesCount = await client.query('SELECT COUNT(*) FROM repasses');

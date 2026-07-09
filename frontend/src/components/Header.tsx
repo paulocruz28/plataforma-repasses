@@ -1,17 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
-import { Home, UserCheck, Sun, Moon } from 'lucide-react';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, UserCheck, Sun, Moon, LogOut } from 'lucide-react';
+import { useToast } from './Toast';
 
 export const Header: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+
   const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
+  const [corretor, setCorretor] = useState<{ id: number; nome: string } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Monitorar se o corretor está logado a cada mudança de rota
+  useEffect(() => {
+    const rawCorretor = localStorage.getItem('corretor');
+    if (rawCorretor) {
+      try {
+        setCorretor(JSON.parse(rawCorretor));
+      } catch (e) {
+        setCorretor(null);
+      }
+    } else {
+      setCorretor(null);
+    }
+  }, [location]);
+
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('corretor');
+    setCorretor(null);
+    showToast('Sua sessão foi encerrada.', 'success');
+    navigate('/login');
   };
 
   return (
@@ -33,7 +61,7 @@ export const Header: React.FC = () => {
         🏠 Repasses<span style={{ color: 'var(--primary)' }}>Imóveis</span>
       </Link>
       
-      <nav className="nav-links" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+      <nav className="nav-links" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
         <NavLink 
           to="/" 
           className={({ isActive }) => isActive ? 'active' : ''} 
@@ -64,6 +92,24 @@ export const Header: React.FC = () => {
           <UserCheck size={18} />
           Painel do Corretor
         </NavLink>
+
+        {corretor && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', marginLeft: '4px' }}>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+              Olá, <b style={{ color: 'var(--text-primary)' }}>{corretor.nome}</b>
+            </span>
+            <button 
+              className="btn btn-secondary" 
+              onClick={handleLogout} 
+              style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.04)' }}
+              title="Sair do Painel"
+            >
+              <LogOut size={14} />
+              Sair
+            </button>
+          </div>
+        )}
+
         <button 
           className="btn btn-secondary" 
           onClick={toggleTheme} 

@@ -8,6 +8,8 @@ import { initDb } from './database/db';
 import * as repassesController from './controllers/repassesController';
 import * as leadsController from './controllers/leadsController';
 import * as contractsController from './controllers/contractsController';
+import * as authController from './controllers/authController';
+import { authMiddleware } from './middlewares/authMiddleware';
 
 dotenv.config();
 
@@ -40,24 +42,29 @@ app.use(express.urlencoded({ extended: true }));
 // >>> ROTAS DA API
 // ============================================================================
 
+// Autenticação (Rotas Públicas e Me protegida)
+app.post('/api/auth/login', authController.login);
+app.post('/api/auth/register', authController.register);
+app.get('/api/auth/me', authMiddleware, authController.me);
+
 // Repasses
 app.get('/api/repasses', repassesController.getRepasses);
 app.get('/api/repasses/:id', repassesController.getRepasseById);
 app.get('/api/repasses/corretor/:corretorId', repassesController.getRepassesByCorretor);
-app.post('/api/repasses', repassesController.createRepasse);
-app.get('/api/corretores', repassesController.getCorretores);
+app.post('/api/repasses', authMiddleware, repassesController.createRepasse);
+app.get('/api/corretores', authMiddleware, repassesController.getCorretores);
 
 // Leads
 app.post('/api/leads', leadsController.createLead);
-app.get('/api/leads', leadsController.getLeads);
-app.put('/api/leads/:id/status', leadsController.updateLeadStatus);
+app.get('/api/leads', authMiddleware, leadsController.getLeads);
+app.put('/api/leads/:id/status', authMiddleware, leadsController.updateLeadStatus);
 
 // Dashboard
-app.get('/api/dashboard/stats', leadsController.getDashboardStats);
+app.get('/api/dashboard/stats', authMiddleware, leadsController.getDashboardStats);
 
 // Contratos e Automação Jurídica
-app.post('/api/contracts/generate', contractsController.generateContract);
-app.post('/api/contracts/verify-certificates', contractsController.verifyCertificates);
+app.post('/api/contracts/generate', authMiddleware, contractsController.generateContract);
+app.post('/api/contracts/verify-certificates', authMiddleware, contractsController.verifyCertificates);
 
 // ============================================================================
 // >>> ROTEAMENTO ESTÁTICO (FRONTEND REACT COM VITE)

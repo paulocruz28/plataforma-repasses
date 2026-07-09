@@ -52,10 +52,26 @@ export interface DashboardData {
   performanceCorretores: CorretorPerformance[];
 }
 
+const getHeaders = () => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 export const api = {
   async get<T>(endpoint: string): Promise<T> {
-    const res = await fetch(`${API_BASE}${endpoint}`);
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: getHeaders()
+    });
     if (!res.ok) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('corretor');
+        window.location.href = '/login';
+      }
       const errText = await res.text();
       throw new Error(errText || `Erro HTTP: ${res.status}`);
     }
@@ -65,10 +81,15 @@ export const api = {
   async post<T>(endpoint: string, data: any): Promise<T> {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('corretor');
+        window.location.href = '/login';
+      }
       const errText = await res.text();
       throw new Error(errText || `Erro HTTP: ${res.status}`);
     }
@@ -78,10 +99,15 @@ export const api = {
   async put<T>(endpoint: string, data: any): Promise<T> {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
+      if (res.status === 401 && !endpoint.includes('/auth/')) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('corretor');
+        window.location.href = '/login';
+      }
       const errText = await res.text();
       throw new Error(errText || `Erro HTTP: ${res.status}`);
     }
