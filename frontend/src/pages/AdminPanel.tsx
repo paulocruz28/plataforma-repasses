@@ -82,6 +82,7 @@ export const AdminPanel: React.FC = () => {
   const [repasseDescricao, setRepasseDescricao] = useState('');
   const [repasseCorretor, setRepasseCorretor] = useState('');
   const [repasseStatus, setRepasseStatus] = useState('Disponível');
+  const [repasseComissaoPct, setRepasseComissaoPct] = useState('5');
   const [savingRepasse, setSavingRepasse] = useState(false);
   
   // Controle de Visualização e Busca de Repasses (CRUD)
@@ -229,6 +230,7 @@ export const AdminPanel: React.FC = () => {
         imagem_url: repasseImagem || undefined,
         descricao: repasseDescricao,
         status: repasseStatus,
+        comissao_pct: repasseComissaoPct ? parseFloat(repasseComissaoPct) : 5.00,
         corretor_id: parseInt(repasseCorretor)
       };
 
@@ -253,6 +255,7 @@ export const AdminPanel: React.FC = () => {
       setRepasseDescricao('');
       setRepasseCorretor('');
       setRepasseStatus('Disponível');
+      setRepasseComissaoPct('5');
       setEditingRepasseId(null);
       setShowRepasseForm(false);
       loadRepassesData();
@@ -892,7 +895,12 @@ export const AdminPanel: React.FC = () => {
                                 </div>
                               </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
-                              <td style={{ padding: '16px', fontSize: '0.92rem', fontWeight: 600 }}>{formatCurrency(parseFloat(r.valor_chave.toString()))}</td>
+                              <td style={{ padding: '16px' }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{formatCurrency(parseFloat(r.valor_chave.toString()))}</div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  Recebe: <b>{formatCurrency(parseFloat(r.valor_chave.toString()) * (r.comissao_pct ? parseFloat(r.comissao_pct.toString()) / 100 : 0.05))}</b> ({r.comissao_pct || 5}%)
+                                </div>
+                              </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor.toString()))}</td>
                               <td style={{ padding: '16px' }}>
                                 <span className={`badge ${r.status === 'Disponível' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
@@ -917,6 +925,7 @@ export const AdminPanel: React.FC = () => {
                                       setRepasseDescricao(r.descricao || '');
                                       setRepasseCorretor(r.corretor_id ? r.corretor_id.toString() : '');
                                       setRepasseStatus(r.status || 'Disponível');
+                                      setRepasseComissaoPct(r.comissao_pct ? r.comissao_pct.toString() : '5');
                                       setEditingRepasseId(r.id);
                                       setShowRepasseForm(true);
                                     }}
@@ -1050,6 +1059,20 @@ export const AdminPanel: React.FC = () => {
 
                   <div className="form-row">
                     <div className="form-group">
+                      <label>Comissão do Corretor (%) *</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        className="form-control" 
+                        required
+                        value={repasseComissaoPct} 
+                        onChange={(e) => setRepasseComissaoPct(e.target.value)} 
+                        placeholder="Ex: 5" 
+                      />
+                    </div>
+                    <div className="form-group">
                       <label>Quantidade de Quartos</label>
                       <select 
                         className="form-control" 
@@ -1062,6 +1085,7 @@ export const AdminPanel: React.FC = () => {
                         <option value="4">4 ou mais Quartos</option>
                       </select>
                     </div>
+                  </div>
                     
                     {editingRepasseId ? (
                       <div className="form-group">

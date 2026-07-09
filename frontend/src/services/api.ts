@@ -16,6 +16,7 @@ export interface Repasse {
   corretor_nome?: string;
   corretor_telefone?: string;
   status: string;
+  comissao_pct?: number;
   data_criacao?: string;
 }
 

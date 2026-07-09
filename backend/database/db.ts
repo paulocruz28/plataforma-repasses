@@ -53,8 +53,14 @@ export const initDb = async (): Promise<void> => {
         descricao TEXT,
         corretor_id INTEGER REFERENCES corretores(id) ON DELETE SET NULL,
         status VARCHAR(50) DEFAULT 'Disponível',
+        comissao_pct NUMERIC(4, 2) DEFAULT 5.00,
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Migração automática e resiliente para adicionar comissao_pct se a tabela já existir
+    await client.query(`
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS comissao_pct NUMERIC(4, 2) DEFAULT 5.00;
     `);
 
     // 3. Tabela de Leads
@@ -109,6 +115,29 @@ export const initDb = async (): Promise<void> => {
         ('Familiar Confortável Cocó', 'Cocó', 220000.00, 450000.00, 3100.00, 3, true, 110, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60', 'Excelente imóvel para família ao lado do Parque do Cocó. Lazer completo e segurança 24h.', $3),
         ('Repasse Aconchegante Fátima', 'Fátima', 95000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento super conservado no bairro de Fátima. Área de lazer, varanda ventilada e ótima localização.', $1);
       `, [c1, c2, c3]);
+    }
+
+    const leadsCount = await client.query('SELECT COUNT(*) FROM leads');
+    if (parseInt(leadsCount.rows[0].count) === 0) {
+      console.log('>>> [DB] Inserindo leads de exemplo...');
+      const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
+      const c1 = corretoresRes.rows[0].id;
+      const c2 = corretoresRes.rows[1].id;
+      const c3 = corretoresRes.rows[2].id;
+
+      const repassesRes = await client.query('SELECT id FROM repasses ORDER BY id');
+      const r1 = repassesRes.rows[0].id;
+      const r2 = repassesRes.rows[1].id;
+      const r3 = repassesRes.rows[2].id;
+
+      await client.query(`
+        INSERT INTO leads (nome, telefone, email, repasse_id, corretor_id, status) VALUES 
+        ('Ana Silva', '(85) 9 9999-1234', 'ana@email.com', $1, $4, 'Novo'),
+        ('Carlos Santos', '(85) 9 8888-5678', 'carlos@email.com', $2, $4, 'Em negociação'),
+        ('Mariana Costa', '(85) 9 7777-9012', 'mariana.c@email.com', $3, $4, 'Vendido'),
+        ('Julia Lima', '(85) 9 6666-3456', 'julia@email.com', $1, $5, 'Novo'),
+        ('Pedro Rocha', '(85) 9 5555-7890', 'pedro@email.com', $2, $6, 'Em negociação');
+      `, [r1, r2, r3, c1, c2, c3]);
     }
 
   } catch (err) {

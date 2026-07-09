@@ -149,7 +149,8 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       SELECT 
         COALESCE(SUM(r.valor_chave), 0) as total_chaves,
         COALESCE(SUM(r.saldo_devedor), 0) as total_saldo_devedor,
-        COALESCE(SUM(r.valor_chave + r.saldo_devedor), 0) as total_vgv
+        COALESCE(SUM(r.valor_chave + r.saldo_devedor), 0) as total_vgv,
+        COALESCE(SUM(r.valor_chave * (COALESCE(r.comissao_pct, 5.00) / 100.0)), 0) as total_comissao_corretor
       FROM repasses r
       WHERE r.status = 'Vendido'
     `);
@@ -157,7 +158,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     const totalVgv = parseFloat(vgvStats.rows[0].total_vgv);
     const totalChaves = parseFloat(vgvStats.rows[0].total_chaves);
     
-    const comissaoCorretor = totalChaves * 0.05;
+    const comissaoCorretor = parseFloat(vgvStats.rows[0].total_comissao_corretor);
     const comissaoGestor = totalVgv * 0.01;
 
     // 3. Conversões e leads por corretor

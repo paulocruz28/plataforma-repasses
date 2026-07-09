@@ -114,15 +114,15 @@ export const getRepassesByCorretor = async (req: Request, res: Response): Promis
 // Cadastrar novo repasse
 export const createRepasse = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, corretor_id } = req.body;
+    const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id } = req.body;
     
     if (!titulo || !bairro || !valor_chave || !saldo_devedor || !corretor_id) {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
     }
 
     const queryText = `
-      INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, corretor_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `;
     const params = [
@@ -136,6 +136,7 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
       area ? parseInt(area) : null,
       imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60',
       descricao || '',
+      comissao_pct ? parseFloat(comissao_pct) : 5.00,
       parseInt(corretor_id)
     ];
 
@@ -162,7 +163,7 @@ export const getCorretores = async (req: Request, res: Response): Promise<void> 
 export const updateRepasse = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
-    const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, status, corretor_id } = req.body;
+    const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, status, comissao_pct, corretor_id } = req.body;
 
     if (!titulo || !bairro || !valor_chave || !saldo_devedor || !corretor_id) {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
@@ -176,8 +177,8 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
     const queryText = `
       UPDATE repasses 
       SET titulo = $1, bairro = $2, valor_chave = $3, saldo_devedor = $4, parcela = $5, 
-          quartos = $6, varanda = $7, area = $8, imagem_url = $9, descricao = $10, status = $11, corretor_id = $12
-      WHERE id = $13
+          quartos = $6, varanda = $7, area = $8, imagem_url = $9, descricao = $10, status = $11, comissao_pct = $12, corretor_id = $13
+      WHERE id = $14
       RETURNING *
     `;
     const params = [
@@ -192,6 +193,7 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
       imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60',
       descricao || '',
       status || 'Disponível',
+      comissao_pct ? parseFloat(comissao_pct) : 5.00,
       parseInt(corretor_id),
       id
     ];
