@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal de Repasses Imobiliários</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="glass-panel">
+    <a href="/" class="logo">
+      🏠 Repasses<span>Imóveis</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/" class="active">Marketplace</a>
+      <a href="/admin">Painel do Corretor</a>
+      <button class="btn btn-secondary" onclick="toggleTheme()" style="padding: 8px 12px; font-size: 1.2rem;">🌓</button>
+    </nav>
+  </header>
+
+  <!-- Portfólio Exclusivo Banner (Invisível por padrão) -->
+  <section id="portfolio-banner" class="portfolio-header glass-panel" style="display: none;">
+    <div class="portfolio-info">
+      <p>Você está visualizando o portfólio exclusivo do corretor:</p>
+      <h2 id="portfolio-broker-name">Nome do Corretor</h2>
+      <p>Telefone de Contato: <span id="portfolio-broker-phone">(85) 99999-9999</span></p>
+    </div>
+    <a href="/" class="btn btn-secondary">Ver Todos os Repasses</a>
+  </section>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero-section">
+    <h1>Encontre o seu <span>Repasse Imobiliário</span> sem Burocracia</h1>
+    <p>Acesse oportunidades de imóveis financiados direto com os proprietários. Filtre por bairro, valor de chave e assuma o saldo devedor.</p>
+  </section>
+
+  <!-- Seção de Filtros Avançados -->
+  <section class="filters-container glass-panel" id="filters-section">
+    <div class="filters-grid">
+      <div class="form-group">
+        <label for="filter-busca">Busca Rápida</label>
+        <input type="text" id="filter-busca" class="form-control" placeholder="Buscar por título ou descrição...">
+      </div>
+      <div class="form-group">
+        <label for="filter-bairro">Bairro</label>
+        <input type="text" id="filter-bairro" class="form-control" placeholder="Ex: Aldeota, Cocó...">
+      </div>
+      <div class="form-group">
+        <label for="filter-quartos">Quartos (Mínimo)</label>
+        <select id="filter-quartos" class="form-control">
+          <option value="">Qualquer quantidade</option>
+          <option value="1">1 Quarto</option>
+          <option value="2">2 Quartos</option>
+          <option value="3">3 ou mais</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="filter-chave">Valor da Chave (Ágio) Máximo</label>
+        <input type="number" id="filter-chave" class="form-control" placeholder="Ex: 150000">
+      </div>
+      <div class="form-group">
+        <label for="filter-saldo">Saldo Devedor Máximo</label>
+        <input type="number" id="filter-saldo" class="form-control" placeholder="Ex: 300000">
+      </div>
+    </div>
+    <div class="filters-actions">
+      <label class="toggle-switch">
+        <input type="checkbox" id="filter-varanda">
+        <span class="switch-slider"></span>
+        <span>Apenas Imóveis com Varanda</span>
+      </label>
+      <button class="btn btn-secondary" onclick="document.querySelectorAll('.form-control').forEach(el=>el.value=''); document.getElementById('filter-varanda').checked=false; fetchRepasses();">Limpar Filtros</button>
+    </div>
+  </section>
+
+  <!-- Lista de Repasses -->
+  <main class="repasses-section">
+    <div class="repasses-grid" id="repasses-grid">
+      <!-- Injetado dinamicamente via JS -->
+    </div>
+  </main>
+
+  <!-- Modal de Captura de Lead (Tenho Interesse) -->
+  <div class="modal-backdrop" id="lead-modal">
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <h2>Tenho Interesse neste Repasse</h2>
+        <button class="modal-close" onclick="closeLeadModal()">&times;</button>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.95rem;">Preencha seus dados de contato. Nossa roleta automática irá direcionar o seu atendimento para o corretor responsável imediatamente.</p>
+      <form id="lead-form">
+        <div class="form-group">
+          <label for="lead-nome">Seu Nome *</label>
+          <input type="text" id="lead-nome" class="form-control" required placeholder="Ex: João da Silva">
+        </div>
+        <div class="form-group">
+          <label for="lead-telefone">Telefone (WhatsApp) *</label>
+          <input type="tel" id="lead-telefone" class="form-control" required placeholder="Ex: (85) 99999-9999">
+        </div>
+        <div class="form-group">
+          <label for="lead-email">E-mail (Opcional)</label>
+          <input type="email" id="lead-email" class="form-control" placeholder="Ex: joao@email.com">
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Enviar e Falar com Corretor</button>
+          <button type="button" class="btn btn-secondary" onclick="closeLeadModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/portal.js"></script>
+</body>
+</html>

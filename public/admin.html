@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Corretor - Projeto Repasses</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="glass-panel">
+    <a href="/" class="logo">
+      🏠 Repasses<span>Imóveis</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/">Marketplace</a>
+      <a href="/admin" class="active">Painel do Corretor</a>
+      <button class="btn btn-secondary" onclick="toggleTheme()" style="padding: 8px 12px; font-size: 1.2rem;">🌓</button>
+    </nav>
+  </header>
+
+  <!-- Sub-navegação do Admin (Abas) -->
+  <nav class="admin-nav">
+    <button class="admin-tab-btn active" data-target="sec-dashboard">Dashboard (VGV)</button>
+    <button class="admin-tab-btn" data-target="sec-crm">CRM & Leads</button>
+    <button class="admin-tab-btn" data-target="sec-contracts">Automação Jurídica</button>
+    <button class="admin-tab-btn" data-target="sec-new-repasse">Cadastrar Repasse</button>
+  </nav>
+
+  <!-- Container de Conteúdo -->
+  <main class="admin-container">
+
+    <!-- 1. DASHBOARD SECTION -->
+    <section id="sec-dashboard" class="admin-section active">
+      <div class="metrics-grid">
+        <div class="metric-card glass-panel" style="border-left: 4px solid var(--success);">
+          <div class="metric-header">
+            <span class="metric-title">VGV Total (Vendido)</span>
+            <span>💰</span>
+          </div>
+          <div class="metric-value" id="stat-vgv">R$ 0,00</div>
+          <div class="metric-sub">Soma das Chaves + Saldos Devedores</div>
+        </div>
+        <div class="metric-card glass-panel" style="border-left: 4px solid var(--primary);">
+          <div class="metric-header">
+            <span class="metric-title">Total em Ágios (Chaves)</span>
+            <span>🔑</span>
+          </div>
+          <div class="metric-value" id="stat-chaves">R$ 0,00</div>
+          <div class="metric-sub">Capital líquido negociado</div>
+        </div>
+        <div class="metric-card glass-panel" style="border-left: 4px solid var(--warning);">
+          <div class="metric-header">
+            <span class="metric-title">Comissão Corretores (5%)</span>
+            <span>🤝</span>
+          </div>
+          <div class="metric-value" id="stat-comissao-corretor">R$ 0,00</div>
+          <div class="metric-sub">Média sobre valor das chaves</div>
+        </div>
+        <div class="metric-card glass-panel" style="border-left: 4px solid #a855f7;">
+          <div class="metric-header">
+            <span class="metric-title">Comissão Gestão (1%)</span>
+            <span>📈</span>
+          </div>
+          <div class="metric-value" id="stat-comissao-gestor">R$ 0,00</div>
+          <div class="metric-sub">1% sobre VGV Geral (Paulo)</div>
+        </div>
+      </div>
+
+      <div class="glass-panel" style="padding: 30px;">
+        <h2>Desempenho da Equipe (Roleta e Conversão)</h2>
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Corretor</th>
+                <th>Leads Recebidos</th>
+                <th>Vendas Feitas</th>
+                <th>Taxa de Conversão</th>
+              </tr>
+            </thead>
+            <tbody id="performance-table-body">
+              <!-- Preenchido via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CRM KANBAN SECTION -->
+    <section id="sec-crm" class="admin-section">
+      <div class="kanban-board">
+        <!-- Coluna: Novo -->
+        <div class="kanban-column glass-panel">
+          <div class="column-header">
+            <span class="column-title">Novos Leads</span>
+            <span class="column-count" id="count-novo">0</span>
+          </div>
+          <div class="leads-list" id="leads-novo">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+        <!-- Coluna: Não respondeu -->
+        <div class="kanban-column glass-panel">
+          <div class="column-header">
+            <span class="column-title">Não respondeu</span>
+            <span class="column-count" id="count-não-respondeu">0</span>
+          </div>
+          <div class="leads-list" id="leads-nao-respondeu">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+        <!-- Coluna: Em negociação -->
+        <div class="kanban-column glass-panel">
+          <div class="column-header">
+            <span class="column-title">Em Negociação</span>
+            <span class="column-count" id="count-em-negociação">0</span>
+          </div>
+          <div class="leads-list" id="leads-em-negociacao">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+        <!-- Coluna: Vendido -->
+        <div class="kanban-column glass-panel" style="background-color: rgba(16, 185, 129, 0.03); border-color: rgba(16, 185, 129, 0.2);">
+          <div class="column-header">
+            <span class="column-title" style="color: var(--success);">Vendido (Fechado)</span>
+            <span class="column-count" id="count-vendido" style="background-color: var(--success-glow); color: var(--success);">0</span>
+          </div>
+          <div class="leads-list" id="leads-vendido">
+            <!-- Injetado via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. AUTOMAÇÃO JURÍDICA SECTION -->
+    <section id="sec-contracts" class="admin-section">
+      <div class="contracts-layout">
+        <!-- Esquerda: Dados do Cliente e Imóvel -->
+        <div class="contract-form-panel glass-panel">
+          <h2>Preenchimento do Contrato</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9rem;">Selecione o repasse e insira os dados do comprador para emitir o instrumento de cessão automaticamente com certidões validadas.</p>
+          
+          <form id="contract-form">
+            <div class="form-group">
+              <label for="contract-repasse">Selecione o Imóvel *</label>
+              <select id="contract-repasse" class="form-control" required>
+                <!-- Injetado via JS -->
+              </select>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="c-name">Nome do Comprador *</label>
+                <input type="text" id="c-name" class="form-control" required placeholder="Nome completo">
+              </div>
+              <div class="form-group">
+                <label for="c-cpf">CPF do Comprador *</label>
+                <input type="text" id="c-cpf" class="form-control" required placeholder="Apenas números">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="c-profissao">Profissão</label>
+                <input type="text" id="c-profissao" class="form-control" placeholder="Ex: Engenheiro, Advogado">
+              </div>
+              <div class="form-group">
+                <label for="c-estado-civil">Estado Civil</label>
+                <select id="c-estado-civil" class="form-control">
+                  <option value="Solteiro(a)">Solteiro(a)</option>
+                  <option value="Casado(a)">Casado(a)</option>
+                  <option value="Divorciado(a)">Divorciado(a)</option>
+                  <option value="Viúvo(a)">Viúvo(a)</option>
+                  <option value="União Estável">União Estável</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="c-endereco">Endereço Residencial</label>
+              <input type="text" id="c-endereco" class="form-control" placeholder="Rua, Número, Bairro, Cidade">
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+              <button type="button" class="btn btn-secondary" onclick="requestCertificates()" style="flex: 1;">
+                🔍 Validar Certidões (Sefin/ONR)
+              </button>
+              <button type="submit" class="btn btn-primary" style="flex: 1;">
+                ✍️ Gerar Minuta Contratual
+              </button>
+            </div>
+          </form>
+
+          <!-- Status de Verificação de Certidões Negativas -->
+          <div class="verification-status" id="verification-status-box" style="display: none;">
+            <h4>Verificação Eletrônica de Certidões Negativas</h4>
+            <div style="margin-top: 12px;">
+              <div class="verification-item">
+                <div class="verification-dot" id="dot-sefin"></div>
+                <span id="text-sefin">Prefeitura / SEFIN</span>
+              </div>
+              <div class="verification-item">
+                <div class="verification-dot" id="dot-onr"></div>
+                <span id="text-onr">Cartórios de Registro / ONR</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direita: Visualizador do Contrato Gerado -->
+        <div class="contract-preview-panel glass-panel">
+          <div class="preview-header">
+            <h2>Minuta Gerada</h2>
+            <button class="btn btn-success" id="print-contract-btn" onclick="printContract()" style="display: none; padding: 8px 16px;">
+              🖨️ Imprimir / Salvar PDF
+            </button>
+          </div>
+          <div class="preview-content" id="contract-preview-box">A minuta do contrato preenchida automaticamente aparecerá aqui após o envio do formulário à esquerda.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. CADASTRO DE REPASSES SECTION -->
+    <section id="sec-new-repasse" class="admin-section">
+      <div class="glass-panel" style="max-width: 800px; margin: 0 auto; padding: 40px;">
+        <h2>Cadastrar Oportunidade de Repasse</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 30px;">Insira as especificações do repasse imobiliário para listagem pública e busca imediata no marketplace.</p>
+        
+        <form id="new-repasse-form">
+          <div class="form-group">
+            <label for="repasse-titulo">Título do Anúncio *</label>
+            <input type="text" id="repasse-titulo" class="form-control" required placeholder="Ex: Lindo apartamento com vista para o parque">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="repasse-bairro">Bairro *</label>
+              <input type="text" id="repasse-bairro" class="form-control" required placeholder="Ex: Aldeota">
+            </div>
+            <div class="form-group">
+              <label for="repasse-corretor">Corretor Responsável *</label>
+              <select id="repasse-corretor" class="form-control" required>
+                <!-- Injetado via JS -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="repasse-chave">Valor da Chave (Ágio) *</label>
+              <input type="number" id="repasse-chave" class="form-control" required placeholder="R$ valor em dinheiro">
+            </div>
+            <div class="form-group">
+              <label for="repasse-saldo">Saldo Devedor do Financiamento *</label>
+              <input type="number" id="repasse-saldo" class="form-control" required placeholder="R$ saldo junto ao banco">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="repasse-parcela">Valor da Parcela Mensal</label>
+              <input type="number" id="repasse-parcela" class="form-control" placeholder="R$ valor mensal">
+            </div>
+            <div class="form-group">
+              <label for="repasse-area">Área Privativa (m²)</label>
+              <input type="number" id="repasse-area" class="form-control" placeholder="Ex: 85">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="repasse-quartos">Quantidade de Quartos</label>
+              <select id="repasse-quartos" class="form-control">
+                <option value="1">1 Quarto</option>
+                <option value="2">2 Quartos</option>
+                <option value="3">3 Quartos</option>
+                <option value="4">4 ou mais Quartos</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 12px;">
+              <label class="toggle-switch">
+                <input type="checkbox" id="repasse-varanda">
+                <span class="switch-slider"></span>
+                <span>Possui Varanda</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="repasse-imagem">URL da Imagem do Imóvel</label>
+            <input type="url" id="repasse-imagem" class="form-control" placeholder="Ex: https://images.unsplash.com/...">
+          </div>
+
+          <div class="form-group">
+            <label for="repasse-descricao">Descrição do Imóvel</label>
+            <textarea id="repasse-descricao" class="form-control" rows="4" placeholder="Descreva os detalhes adicionais, área de lazer, diferenciais, etc."></textarea>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 30px;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Publicar Anúncio no Marketplace</button>
+            <button type="reset" class="btn btn-secondary">Limpar Formuário</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
