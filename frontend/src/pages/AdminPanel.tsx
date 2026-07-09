@@ -30,6 +30,26 @@ const formatPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
+const formatCurrencyInput = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const cents = parseInt(digits, 10) / 100;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(cents);
+};
+
+const parseCurrencyToNumber = (value: string): number => {
+  if (!value) return 0;
+  const cleanValue = value
+    .replace('R$', '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .replace(/\s/g, '');
+  return parseFloat(cleanValue) || 0;
+};
+
 export const AdminPanel: React.FC = () => {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -183,9 +203,9 @@ export const AdminPanel: React.FC = () => {
       await api.post('/repasses', {
         titulo: repasseTitulo,
         bairro: repasseBairro,
-        valor_chave: repasseChave,
-        saldo_devedor: repasseSaldo,
-        parcela: repasseParcela || undefined,
+        valor_chave: parseCurrencyToNumber(repasseChave),
+        saldo_devedor: parseCurrencyToNumber(repasseSaldo),
+        parcela: repasseParcela ? parseCurrencyToNumber(repasseParcela) : undefined,
         quartos: repasseQuartos,
         varanda: repasseVaranda,
         area: repasseArea || undefined,
@@ -790,23 +810,23 @@ export const AdminPanel: React.FC = () => {
                   <div className="form-group">
                     <label>Valor da Chave (Ágio) *</label>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control" 
                       required 
                       value={repasseChave} 
-                      onChange={(e) => setRepasseChave(e.target.value)} 
-                      placeholder="R$ valor em dinheiro" 
+                      onChange={(e) => setRepasseChave(formatCurrencyInput(e.target.value))} 
+                      placeholder="Ex: R$ 50.000,00" 
                     />
                   </div>
                   <div className="form-group">
                     <label>Saldo Devedor do Financiamento *</label>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control" 
                       required 
                       value={repasseSaldo} 
-                      onChange={(e) => setRepasseSaldo(e.target.value)} 
-                      placeholder="R$ saldo junto ao banco" 
+                      onChange={(e) => setRepasseSaldo(formatCurrencyInput(e.target.value))} 
+                      placeholder="Ex: R$ 120.000,00" 
                     />
                   </div>
                 </div>
@@ -815,11 +835,11 @@ export const AdminPanel: React.FC = () => {
                   <div className="form-group">
                     <label>Valor da Parcela Mensal</label>
                     <input 
-                      type="number" 
+                      type="text" 
                       className="form-control" 
                       value={repasseParcela} 
-                      onChange={(e) => setRepasseParcela(e.target.value)} 
-                      placeholder="R$ valor mensal" 
+                      onChange={(e) => setRepasseParcela(formatCurrencyInput(e.target.value))} 
+                      placeholder="Ex: R$ 850,00" 
                     />
                   </div>
                   <div className="form-group">
