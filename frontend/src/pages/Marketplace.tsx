@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import type { Repasse } from '../services/api';
 import { RepasseCard } from '../components/RepasseCard';
 import { useToast } from '../components/Toast';
+import { Search, MapPin, BedDouble, DollarSign, X } from 'lucide-react';
 
 const formatPhone = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -186,76 +187,109 @@ export const Marketplace: React.FC = () => {
         </section>
       )}
 
-      {/* Seção de Filtros Avançados */}
+      {/* Seção de Filtros Avançados Premium */}
       {!corretorParam && (
-        <section className="filters-container glass-panel" style={{ maxWidth: '1200px', margin: '0 auto 40px', padding: '30px' }}>
-          <div className="filters-grid">
-            <div className="form-group">
+        <section className="filters-container-premium">
+          <div className="filters-grid-premium">
+            
+            {/* Campo 1: Busca Rápida */}
+            <div className="form-group-premium">
               <label>Busca Rápida</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                value={busca} 
-                onChange={(e) => setBusca(e.target.value)} 
-                placeholder="Buscar por título ou descrição..." 
-              />
+              <div className="input-with-icon-premium">
+                <Search size={18} className="input-icon-premium" />
+                <input 
+                  type="text" 
+                  className="form-control-premium" 
+                  value={busca} 
+                  onChange={(e) => setBusca(e.target.value)} 
+                  placeholder="Título ou descrição..." 
+                />
+              </div>
             </div>
-            <div className="form-group">
+
+            {/* Campo 2: Bairro */}
+            <div className="form-group-premium">
               <label>Bairro</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                value={bairro} 
-                onChange={(e) => setBairro(e.target.value)} 
-                placeholder="Ex: Aldeota, Cocó..." 
-              />
+              <div className="input-with-icon-premium">
+                <MapPin size={18} className="input-icon-premium" />
+                <input 
+                  type="text" 
+                  className="form-control-premium" 
+                  value={bairro} 
+                  onChange={(e) => setBairro(e.target.value)} 
+                  placeholder="Ex: Aldeota, Cocó..." 
+                />
+              </div>
             </div>
-            <div className="form-group">
+
+            {/* Campo 3: Quartos */}
+            <div className="form-group-premium">
               <label>Quartos (Mínimo)</label>
-              <select 
-                className="form-control" 
-                value={quartos} 
-                onChange={(e) => setQuartos(e.target.value)}
-              >
-                <option value="">Qualquer quantidade</option>
-                <option value="1">1 Quarto</option>
-                <option value="2">2 Quartos</option>
-                <option value="3">3 ou mais</option>
-              </select>
+              <div className="input-with-icon-premium">
+                <BedDouble size={18} className="input-icon-premium" />
+                <select 
+                  className="form-control-premium" 
+                  value={quartos} 
+                  onChange={(e) => setQuartos(e.target.value)}
+                  style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                >
+                  <option value="">Qualquer Qtd</option>
+                  <option value="1">1 Quarto</option>
+                  <option value="2">2 Quartos</option>
+                  <option value="3">3+ Quartos</option>
+                </select>
+              </div>
             </div>
-            <div className="form-group">
-              <label>Valor da Chave (Ágio) Máximo</label>
-              <input 
-                type="number" 
-                className="form-control" 
-                value={chaveMax} 
-                onChange={(e) => setChaveMax(e.target.value)} 
-                placeholder="Ex: 150000" 
-              />
+
+            {/* Campo 4: Valor Máximo Chave */}
+            <div className="form-group-premium">
+              <label>Chave Máxima (Ágio)</label>
+              <div className="input-with-icon-premium">
+                <DollarSign size={18} className="input-icon-premium" />
+                <input 
+                  type="number" 
+                  className="form-control-premium" 
+                  value={chaveMax} 
+                  onChange={(e) => setChaveMax(e.target.value)} 
+                  placeholder="Ex: 150000" 
+                />
+              </div>
             </div>
-            <div className="form-group">
-              <label>Saldo Devedor Máximo</label>
-              <input 
-                type="number" 
-                className="form-control" 
-                value={saldoMax} 
-                onChange={(e) => setSaldoMax(e.target.value)} 
-                placeholder="Ex: 300000" 
-              />
+
+            {/* Campo 5: Saldo Devedor Máximo */}
+            <div className="form-group-premium">
+              <label>Saldo Dev. Máximo</label>
+              <div className="input-with-icon-premium">
+                <DollarSign size={18} className="input-icon-premium" />
+                <input 
+                  type="number" 
+                  className="form-control-premium" 
+                  value={saldoMax} 
+                  onChange={(e) => setSaldoMax(e.target.value)} 
+                  placeholder="Ex: 300000" 
+                />
+              </div>
             </div>
+
           </div>
-          <div className="filters-actions">
-            <label className="toggle-switch">
+          
+          <div className="filters-actions-premium">
+            <label className="toggle-switch" style={{ display: 'flex', alignItems: 'center', gap: '10px', userSelect: 'none' }}>
               <input 
                 type="checkbox" 
                 checked={varanda} 
                 onChange={(e) => setVaranda(e.target.checked)} 
               />
               <span className="switch-slider"></span>
-              <span>Apenas com Varanda</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Apenas imóveis com Varanda</span>
             </label>
-            <button className="btn btn-secondary" onClick={limparFiltros}>
-              Limpar Filtros
+            
+            <button 
+              className="btn btn-secondary" 
+              onClick={limparFiltros}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 24px', fontSize: '0.9rem', fontWeight: 600 }}
+            >
+              <X size={16} /> Limpar Filtros
             </button>
           </div>
         </section>
