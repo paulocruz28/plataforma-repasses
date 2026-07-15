@@ -58,6 +58,20 @@ const NEIGHBORHOODS = [
   'Jereissati, Maracanaú (CE)'
 ];
 
+const getSpecsForRepasse = (item: Repasse) => {
+  const isHouse = item.titulo.toLowerCase().includes('casa') || (item.descricao && item.descricao.toLowerCase().includes('casa'));
+  const area = item.area || 0;
+  return {
+    suites: item.quartos > 1 ? Math.max(1, item.quartos - 1) : 0,
+    banheiros: item.quartos >= 3 ? 3 : (item.quartos === 2 ? 2 : 1),
+    vagas: area >= 200 ? 3 : (area >= 80 ? 2 : 1),
+    aceitaPet: area >= 60 ? 'Sim' : 'Não',
+    caracteristicas: isHouse 
+      ? ['Área de serviço', 'Cozinha', 'Portão eletrônico', 'Churrasqueira', 'Piso cerâmico', 'Quintal']
+      : ['Área de serviço', 'Cozinha', 'Portão eletrônico', 'Churrasqueira', 'Varanda Gourmet', 'Elevador']
+  };
+};
+
 export const Marketplace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -135,7 +149,15 @@ export const Marketplace: React.FC = () => {
   const [leadNome, setLeadNome] = useState('');
   const [leadTelefone, setLeadTelefone] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
+  const [leadMensagem, setLeadMensagem] = useState('');
   const [sendingLead, setSendingLead] = useState(false);
+
+  // Efeito para preencher a mensagem de interesse do lead ao selecionar um imóvel
+  useEffect(() => {
+    if (selectedDetailsRepasse) {
+      setLeadMensagem(`Olá! Tenho interesse no imóvel código CA-${selectedDetailsRepasse.id}. Poderia me passar mais informações?`);
+    }
+  }, [selectedDetailsRepasse]);
 
   // Função para buscar repasses
   const fetchRepasses = useCallback(async () => {
@@ -380,14 +402,17 @@ export const Marketplace: React.FC = () => {
 
     setSendingLead(true);
     try {
+      const payloadNome = leadMensagem ? `${leadNome} (Mensagem: ${leadMensagem.substring(0, 100)})` : leadNome;
       const res = await api.post<{ lead: { corretor_nome: string } }>('/leads', {
-        nome: leadNome,
+        nome: payloadNome,
         telefone: leadTelefone,
         email: leadEmail || undefined,
-        repasse_id: selectedRepasseId
+        repasse_id: selectedRepasseId || selectedDetailsRepasse?.id || null
       });
 
       closeLeadModal();
+      setSelectedDetailsRepasse(null);
+      setLeadMensagem('');
       showToast(
         `Obrigado! O corretor <b>${res.lead.corretor_nome}</b> foi acionado na roleta e entrará em contato.`,
         'success'
@@ -1600,147 +1625,315 @@ export const Marketplace: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Modal Detalhes do Imóvel */}
-      {selectedDetailsRepasse !== null && (
-        <div className="modal-backdrop active">
-          <div className="modal-content glass-panel" style={{ maxWidth: '780px', padding: '0', overflow: 'hidden' }}>
-            {/* Header com foto grande */}
-            <div style={{ position: 'relative', height: '320px', width: '100%' }}>
-              <span className="badge badge-success" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, fontSize: '0.9rem', padding: '8px 16px' }}>
-                {selectedDetailsRepasse.status || 'Disponível'}
-              </span>
-              <button 
-                onClick={() => setSelectedDetailsRepasse(null)} 
-                style={{ 
-                  position: 'absolute', 
-                  top: '20px', 
-                  right: '20px', 
-                  zIndex: 10, 
-                  background: 'rgba(0,0,0,0.6)', 
-                  color: '#ffffff', 
-                  border: 'none', 
-                  borderRadius: '50%', 
-                  width: '36px', 
-                  height: '36px', 
-                  fontSize: '1.4rem', 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                &times;
-              </button>
-              <img 
-                src={selectedDetailsRepasse.imagem_url} 
-                alt={selectedDetailsRepasse.titulo} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60';
-                }}
-              />
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)',
-                padding: '40px 30px 20px',
-                color: '#ffffff'
-              }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f97316', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                  Oportunidade de Repasse
-                </span>
-                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0 0', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
-                  {selectedDetailsRepasse.titulo}
-                </h2>
-              </div>
-            </div>
+      {/* Modal Detalhes do Imóvel (Layout Nivu/Print - Widescreen) */}
+      {selectedDetailsRepasse !== null && (() => {
+        const specs = getSpecsForRepasse(selectedDetailsRepasse);
+        const related = repasses.filter(r => r.id !== selectedDetailsRepasse.id).slice(0, 3);
+        const formatCurrency = (val: string | number) => {
+          return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(parseFloat(val.toString()));
+        };
 
-            {/* Conteúdo do Imóvel */}
-            <div style={{ padding: '30px', maxHeight: '420px', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 600 }}>
-                  📍 Bairro: <strong style={{ color: 'var(--primary)' }}>{selectedDetailsRepasse.bairro}</strong>
+        return (
+          <div className="modal-backdrop active" style={{ overflowY: 'auto', padding: '40px 0' }}>
+            <div className="modal-content glass-panel" style={{ maxWidth: '1100px', width: '90%', padding: '0', overflow: 'hidden', margin: 'auto' }}>
+              
+              {/* Fotos / Carrossel no Topo */}
+              <div style={{ position: 'relative', height: '400px', width: '100%' }}>
+                <span className="badge badge-success" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, fontSize: '0.9rem', padding: '8px 16px' }}>
+                  {selectedDetailsRepasse.status || 'Disponível'}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
-                  🛏️ <strong>{selectedDetailsRepasse.quartos}</strong> {selectedDetailsRepasse.quartos > 1 ? 'Quartos' : 'Quarto'}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
-                  📐 <strong>{selectedDetailsRepasse.area || 0} m²</strong> Área útil
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
-                  🌅 <strong>{selectedDetailsRepasse.varanda ? 'Com Varanda' : 'Sem Varanda'}</strong>
-                </span>
-              </div>
+                
+                {/* Badge 24 Fotos */}
+                <div style={{ position: 'absolute', top: '20px', left: '130px', zIndex: 10, background: 'rgba(0,0,0,0.6)', color: '#ffffff', borderRadius: '20px', padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📷 24 Fotos
+                </div>
 
-              {/* Informações Financeiras */}
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px' }}>Condições Financeiras</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', background: 'rgba(0,0,0,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor da Chave (Ágio)</span>
-                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)' }}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.valor_chave.toString()))}
+                <button 
+                  onClick={() => setSelectedDetailsRepasse(null)} 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '20px', 
+                    right: '20px', 
+                    zIndex: 10, 
+                    background: 'rgba(0,0,0,0.6)', 
+                    color: '#ffffff', 
+                    border: 'none', 
+                    borderRadius: '50%', 
+                    width: '36px', 
+                    height: '36px', 
+                    fontSize: '1.4rem', 
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  &times;
+                </button>
+                <img 
+                  src={selectedDetailsRepasse.imagem_url} 
+                  alt={selectedDetailsRepasse.titulo} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60';
+                  }}
+                />
+                
+                {/* Arrow navigation handles for carousels */}
+                <div style={{ position: 'absolute', top: '50%', left: '20px', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.4)', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '1.2rem', cursor: 'pointer' }}>
+                  &lsaquo;
+                </div>
+                <div style={{ position: 'absolute', top: '50%', right: '20px', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.4)', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontSize: '1.2rem', cursor: 'pointer' }}>
+                  &rsaquo;
+                </div>
+
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)',
+                  padding: '40px 30px 20px',
+                  color: '#ffffff'
+                }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f97316', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Oportunidade de Repasse
                   </span>
-                </div>
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Saldo Devedor</span>
-                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.saldo_devedor.toString()))}
-                  </span>
-                </div>
-                <div>
-                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor da Parcela</span>
-                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {selectedDetailsRepasse.parcela ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.parcela.toString())) : 'N/A'}
-                  </span>
+                  <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '4px 0 0', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
+                    {selectedDetailsRepasse.titulo}
+                  </h2>
                 </div>
               </div>
 
-              {/* Descrição Completa */}
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Descrição</h3>
-              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
-                {selectedDetailsRepasse.descricao || 'Nenhuma descrição adicional fornecida para este repasse imobiliário.'}
-              </p>
+              {/* Corpo dividido: Esquerda (Conteúdo) vs Direita (Card Contato) */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', padding: '30px' }}>
+                
+                {/* Esquerda: 62% de largura */}
+                <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {/* Negócio & Preço */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                        {selectedDetailsRepasse.titulo.toLowerCase().includes('alugar') ? 'Aluguel' : 'Venda'}
+                      </span>
+                      <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: '4px 0 0' }}>
+                        {formatCurrency(selectedDetailsRepasse.valor_chave)}
+                      </h1>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => handleShare(selectedDetailsRepasse.id)} 
+                      style={{ 
+                        padding: '10px 16px', 
+                        fontSize: '0.85rem', 
+                        fontWeight: 700,
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        cursor: 'pointer', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '8px', 
+                        background: 'transparent',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      🟢 Compartilhar WhatsApp
+                    </button>
+                  </div>
 
-              {/* Corretor Responsável */}
-              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block' }}>Corretor Responsável</span>
-                  <strong style={{ fontSize: '0.98rem' }}>{selectedDetailsRepasse.corretor_nome || 'Equipe Repasses'}</strong>
+                  {/* Grid de Especificações Físicas */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '20px' }}>
+                    
+                    {/* Área do Terreno */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>📐</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Área do terreno</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{selectedDetailsRepasse.area} m²</strong>
+                      </div>
+                    </div>
+
+                    {/* Quartos */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🛏️</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Quartos</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{selectedDetailsRepasse.quartos}</strong>
+                      </div>
+                    </div>
+
+                    {/* Suítes */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🛁</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Suítes</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{specs.suites}</strong>
+                      </div>
+                    </div>
+
+                    {/* Banheiros */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🚿</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Banheiros</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{specs.banheiros}</strong>
+                      </div>
+                    </div>
+
+                    {/* Vagas */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🚗</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Vagas</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{specs.vagas}</strong>
+                      </div>
+                    </div>
+
+                    {/* Aceita Pet */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '1.8rem' }}>🐾</span>
+                      <div>
+                        <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Aceita pet</span>
+                        <strong style={{ fontSize: '0.95rem' }}>{specs.aceitaPet}</strong>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '10px 0' }} />
+
+                  {/* Descrição */}
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-primary)' }}>Descrição</h3>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: '1.7', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
+                      {selectedDetailsRepasse.descricao || 'Excelente oportunidade de repasse imobiliário em Fortaleza.'}
+                    </p>
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '10px 0' }} />
+
+                  {/* Características */}
+                  <div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>Características</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {specs.caracteristicas.map((c, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ color: '#10b981', fontWeight: 'bold' }}>✔</span> {c}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                  Código do Imóvel: #{selectedDetailsRepasse.id}
+
+                {/* Direita: Card Contato (35% de largura) */}
+                <div style={{ flex: '1 1 320px' }}>
+                  <div className="glass-panel" style={{ padding: '24px', border: '1px solid var(--border-color)', borderRadius: '16px', background: 'var(--panel-bg)', boxShadow: '0 8px 30px rgba(0,0,0,0.05)' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '16px' }}>Entrar em contato</h3>
+                    
+                    {/* Abas Mensagem / Visita */}
+                    <div style={{ display: 'flex', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', padding: '4px', marginBottom: '20px' }}>
+                      <button type="button" style={{ flex: 1, border: 'none', background: '#f97316', color: '#ffffff', padding: '10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Mensagem 💬
+                      </button>
+                      <button type="button" onClick={() => showToast('Agendamento de visitas disponível em breve!', 'info')} style={{ flex: 1, border: 'none', background: 'transparent', color: 'var(--text-secondary)', padding: '10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}>
+                        Agendar visita 📅
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleLeadSubmit}>
+                      <div className="form-group" style={{ marginBottom: '14px' }}>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          required 
+                          placeholder="Nome*" 
+                          value={leadNome} 
+                          onChange={(e) => setLeadNome(e.target.value)} 
+                          style={{ height: '44px' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '14px' }}>
+                        <input 
+                          type="tel" 
+                          className="form-control" 
+                          required 
+                          placeholder="Telefone*" 
+                          value={leadTelefone} 
+                          onChange={(e) => setLeadTelefone(formatPhone(e.target.value))} 
+                          style={{ height: '44px' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '14px' }}>
+                        <input 
+                          type="email" 
+                          className="form-control" 
+                          placeholder="E-mail" 
+                          value={leadEmail} 
+                          onChange={(e) => setLeadEmail(e.target.value)} 
+                          style={{ height: '44px' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '16px' }}>
+                        <textarea 
+                          className="form-control" 
+                          required 
+                          rows={3} 
+                          value={leadMensagem} 
+                          onChange={(e) => setLeadMensagem(e.target.value)} 
+                          style={{ resize: 'none', fontSize: '0.9rem', padding: '12px' }}
+                        />
+                      </div>
+
+                      <button 
+                        type="submit" 
+                        className="btn-orange-find" 
+                        style={{ width: '100%', height: '46px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', fontWeight: 700 }}
+                        disabled={sendingLead}
+                      >
+                        {sendingLead ? 'Enviando...' : 'Enviar mensagem'}
+                      </button>
+
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.4', textAlign: 'center' }}>
+                        Ao enviar concordo com os termos de uso e política de privacidade, para contatar os próximos anunciantes e afirmo ter mais de 18 anos.
+                      </p>
+                    </form>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Rodapé: Já viu estes imóveis? (Recomendados) */}
+              <div style={{ background: 'rgba(0,0,0,0.01)', borderTop: '1px solid var(--border-color)', padding: '40px 30px' }}>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, textAlign: 'center', marginBottom: '24px' }}>Já viu estes imóveis?</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
+                  {related.map(item => (
+                    <div 
+                      key={item.id} 
+                      onClick={() => {
+                        setSelectedDetailsRepasse(item);
+                        const modalBackdrop = document.querySelector('.modal-backdrop.active');
+                        if (modalBackdrop) modalBackdrop.scrollTop = 0;
+                      }}
+                      style={{ cursor: 'pointer', overflow: 'hidden', borderRadius: '12px', border: '1px solid var(--border-color)', height: '200px', position: 'relative', transition: 'all 0.3s ease' }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <img src={item.imagem_url} alt={item.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%)', padding: '16px', color: '#ffffff' }}>
+                        <span style={{ fontSize: '0.98rem', fontWeight: 700 }}>📍 {item.bairro}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Ações */}
-            <div style={{ padding: '20px 30px', background: 'var(--panel-bg)', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={() => handleShare(selectedDetailsRepasse.id)}
-                style={{ height: '48px', padding: '0 20px', fontWeight: 600 }}
-              >
-                Compartilhar WhatsApp
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-primary" 
-                onClick={() => {
-                  const id = selectedDetailsRepasse.id;
-                  setSelectedDetailsRepasse(null);
-                  openLeadModal(id);
-                }}
-                style={{ height: '48px', padding: '0 30px', fontWeight: 700 }}
-              >
-                Tenho Interesse / Negociar
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
