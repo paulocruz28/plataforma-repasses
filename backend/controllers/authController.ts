@@ -20,6 +20,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const result = await db.query('SELECT * FROM corretores WHERE email = $1 AND ativo = TRUE', [email.toLowerCase().trim()]);
     
     if (result.rows.length === 0) {
+      console.log(`>>> [AUTH] Login falhou: email não encontrado ou inativo: "${email}"`);
       res.status(400).send('E-mail ou senha incorretos.');
       return;
     }
@@ -28,6 +29,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Verificar se o corretor possui senha_hash
     if (!corretor.senha_hash) {
+      console.log(`>>> [AUTH] Login falhou: corretor sem senha_hash: "${email}"`);
       res.status(400).send('Corretor não possui senha configurada. Entre em contato com a administração.');
       return;
     }
@@ -35,6 +37,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Comparar senha
     const isMatch = await bcrypt.compare(senha, corretor.senha_hash);
     if (!isMatch) {
+      console.log(`>>> [AUTH] Login falhou: senha incorreta para: "${email}". Comprimento recebido: ${senha.length}`);
       res.status(400).send('E-mail ou senha incorretos.');
       return;
     }
