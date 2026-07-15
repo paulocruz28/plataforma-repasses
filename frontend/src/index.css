@@ -1318,5 +1318,37 @@ body {
   }
 }
 
+/* Estilos para Validação e Alerta Vermelho (Imagem 5) */
+.invalid-input-container {
+  position: relative;
+  border: 1.5px solid #ef4444 !important;
+  border-radius: 8px;
+  background-color: rgba(239, 68, 68, 0.02);
+}
+
+.invalid-input-badge {
+  position: absolute;
+  right: 12px;
+  top: -10px;
+  background: #ffffff;
+  color: #ef4444;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0 6px;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  text-transform: uppercase;
+  z-index: 10;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="dark"] .invalid-input-badge {
+  background: #1e293b;
+}
+
+[data-theme="dark"] .invalid-input-container {
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
 
 
