@@ -76,6 +76,7 @@ app.get('/api/corretores', authMiddleware, repassesController.getCorretores);
 app.post('/api/leads', leadsController.createLead);
 app.get('/api/leads', authMiddleware, leadsController.getLeads);
 app.put('/api/leads/:id/status', authMiddleware, leadsController.updateLeadStatus);
+app.get('/api/sales/events', authMiddleware, leadsController.getSaleEvents);
 
 // Dashboard
 app.get('/api/dashboard/stats', authMiddleware, leadsController.getDashboardStats);

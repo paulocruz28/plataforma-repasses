@@ -169,6 +169,9 @@ export const Marketplace: React.FC = () => {
   };
 
   const filteredRepasses = repasses.filter(item => {
+    // 0. Remover da vitrine se o imóvel já estiver vendido
+    if (item.status && (item.status.toLowerCase() === 'vendido' || item.status.toLowerCase() === 'venda confirmada')) return false;
+
     const text = `${item.titulo} ${item.descricao || ''}`.toLowerCase();
     
     // 1. Filtrar pela aba ativa (Highlights/Categorias)

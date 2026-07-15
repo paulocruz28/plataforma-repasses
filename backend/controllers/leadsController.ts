@@ -101,6 +101,14 @@ export const getLeads = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// Fila global em memória para registrar eventos de vendas (confetes em equipe)
+export const saleEvents: any[] = [];
+
+// Obter eventos de vendas recentes
+export const getSaleEvents = async (req: Request, res: Response): Promise<void> => {
+  res.json(saleEvents);
+};
+
 // Atualizar o status do lead (Kanban e Vendas)
 export const updateLeadStatus = async (req: Request, res: Response): Promise<any> => {
   try {
@@ -133,6 +141,36 @@ export const updateLeadStatus = async (req: Request, res: Response): Promise<any
         "UPDATE repasses SET status = 'Vendido' WHERE id = $1",
         [lead.repasse_id]
       );
+
+      // Disparar evento de venda para toda a equipe
+      try {
+        const details = await db.query(
+          `SELECT c.nome as corretor_nome, r.titulo as repasse_titulo 
+           FROM corretores c
+           CROSS JOIN repasses r
+           WHERE c.id = $1 AND r.id = $2`,
+          [lead.corretor_id, lead.repasse_id]
+        );
+        
+        if (details.rows.length > 0) {
+          const brokerName = details.rows[0].corretor_nome || 'Um corretor';
+          const propertyTitle = details.rows[0].repasse_titulo || 'um imóvel';
+          
+          saleEvents.push({
+            id: `sale-${id}-${Date.now()}`,
+            brokerName,
+            propertyTitle,
+            timestamp: Date.now()
+          });
+
+          // Limitar o array de eventos para os últimos 20
+          if (saleEvents.length > 20) {
+            saleEvents.shift();
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao registrar evento de venda:', err);
+      }
     } else if (status !== 'Vendido' && lead.repasse_id) {
       await db.query(
         "UPDATE repasses SET status = 'Disponível' WHERE id = $1 AND status = 'Vendido'",

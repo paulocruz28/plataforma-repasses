@@ -62,36 +62,40 @@ export const Header: React.FC = () => {
       </Link>
       
       <nav className="nav-links" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => isActive ? 'active' : ''} 
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: isActive ? 600 : 500,
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          })}
-        >
-          <Home size={18} />
-          Marketplace
-        </NavLink>
-        <NavLink 
-          to="/admin" 
-          className={({ isActive }) => isActive ? 'active' : ''} 
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: isActive ? 600 : 500,
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          })}
-        >
-          <UserCheck size={18} />
-          Painel do Corretor
-        </NavLink>
+        {corretor && (
+          <>
+            <NavLink 
+              to="/" 
+              className={({ isActive }) => isActive ? 'active' : ''} 
+              style={({ isActive }) => ({
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: isActive ? 600 : 500,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              })}
+            >
+              <Home size={18} />
+              Marketplace
+            </NavLink>
+            <NavLink 
+              to="/admin" 
+              className={({ isActive }) => isActive ? 'active' : ''} 
+              style={({ isActive }) => ({
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: isActive ? 600 : 500,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              })}
+            >
+              <UserCheck size={18} />
+              Painel do Corretor
+            </NavLink>
+          </>
+        )}
 
         {corretor && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', marginLeft: '4px' }}>
