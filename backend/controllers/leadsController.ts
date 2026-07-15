@@ -2,10 +2,10 @@ import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/authMiddleware';
 import * as db from '../database/db';
 
-// Cadastrar um lead e distribuir automaticamente via Roleta de Leads (Round-Robin)
+// Cadastrar um lead e distribuir automaticamente via Roleta de Leads ou Atribuição Direta
 export const createLead = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { nome, telefone, email, repasse_id } = req.body;
+    const { nome, telefone, email, repasse_id, corretor_id } = req.body;
 
     if (!nome || !telefone) {
       return res.status(400).json({ error: 'Nome e telefone são obrigatórios.' });
@@ -21,31 +21,53 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
     }
 
     let corretorDestinoId: number | null = null;
+    let atribuicaoDireta = false;
 
-    // 2. Obter o corretor do último lead cadastrado para fazer a roleta
-    const { rows: ultimoLead } = await db.query(
-      'SELECT corretor_id FROM leads WHERE corretor_id IS NOT NULL ORDER BY id DESC LIMIT 1'
-    );
-
-    if (ultimoLead.length === 0) {
-      // Nenhum lead cadastrado ainda, atribui ao primeiro corretor
-      corretorDestinoId = corretores[0].id;
-    } else {
-      const ultimoCorretorId = ultimoLead[0].corretor_id;
-      // Localizar o índice do último corretor na lista de ativos
-      const indexUltimo = corretores.findIndex(c => c.id === ultimoCorretorId);
-
-      if (indexUltimo === -1) {
-        // Se o último corretor não estiver mais ativo, reinicia do primeiro
-        corretorDestinoId = corretores[0].id;
-      } else {
-        // Avança um corretor na fila (retornando a zero se for o final)
-        const proximoIndex = (indexUltimo + 1) % corretores.length;
-        corretorDestinoId = corretores[proximoIndex].id;
+    // 2. Verificar se há indicação direta de corretor (no corpo da requisição ou pelo dono do repasse)
+    if (corretor_id) {
+      const parsedId = parseInt(corretor_id);
+      if (corretores.some(c => c.id === parsedId)) {
+        corretorDestinoId = parsedId;
+        atribuicaoDireta = true;
       }
     }
 
-    // 3. Cadastrar o lead no banco de dados com o corretor atribuído
+    if (!corretorDestinoId && repasse_id) {
+      const { rows: repasseObj } = await db.query(
+        'SELECT corretor_id FROM repasses WHERE id = $1',
+        [parseInt(repasse_id)]
+      );
+      if (repasseObj.length > 0 && repasseObj[0].corretor_id) {
+        const repasseCorretorId = repasseObj[0].corretor_id;
+        if (corretores.some(c => c.id === repasseCorretorId)) {
+          corretorDestinoId = repasseCorretorId;
+          atribuicaoDireta = true;
+        }
+      }
+    }
+
+    // 3. Se não houver atribuição direta, executa a Roleta (Round-Robin)
+    if (!corretorDestinoId) {
+      const { rows: ultimoLead } = await db.query(
+        'SELECT corretor_id FROM leads WHERE corretor_id IS NOT NULL ORDER BY id DESC LIMIT 1'
+      );
+
+      if (ultimoLead.length === 0) {
+        corretorDestinoId = corretores[0].id;
+      } else {
+        const ultimoCorretorId = ultimoLead[0].corretor_id;
+        const indexUltimo = corretores.findIndex(c => c.id === ultimoCorretorId);
+
+        if (indexUltimo === -1) {
+          corretorDestinoId = corretores[0].id;
+        } else {
+          const proximoIndex = (indexUltimo + 1) % corretores.length;
+          corretorDestinoId = corretores[proximoIndex].id;
+        }
+      }
+    }
+
+    // 4. Cadastrar o lead no banco de dados com o corretor atribuído
     const queryText = `
       INSERT INTO leads (nome, telefone, email, repasse_id, corretor_id, status)
       VALUES ($1, $2, $3, $4, $5, 'Novo')
@@ -58,7 +80,9 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
     const corretorNome = corretores.find(c => c.id === corretorDestinoId)!.nome;
 
     res.status(201).json({
-      message: 'Lead recebido e distribuído com sucesso na roleta!',
+      message: atribuicaoDireta 
+        ? 'Lead recebido e atribuído diretamente ao corretor responsável!' 
+        : 'Lead recebido e distribuído com sucesso na roleta!',
       lead: {
         ...leadInserido[0],
         corretor_nome: corretorNome
@@ -115,7 +139,7 @@ export const updateLeadStatus = async (req: Request, res: Response): Promise<any
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = ['Novo', 'Não respondeu', 'Em negociação', 'Vendido'];
+    const validStatuses = ['Novo', 'Não respondeu', 'Em negociação', 'Aprovado', 'Vendido'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: 'Status de lead inválido.' });
     }
@@ -192,7 +216,17 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     const isCorretor = authReq.user?.role === 'corretor';
     const corretorId = authReq.user?.id;
 
-    // 1. Leads por status
+    // 1. Obter taxas padrão de comissão das configurações do banco
+    const configRes = await db.query('SELECT chave, valor FROM configuracoes');
+    const configs = configRes.rows.reduce((acc: any, row: any) => {
+      acc[row.chave] = parseFloat(row.valor);
+      return acc;
+    }, { comissao_corretor_padrao: 5.00, comissao_gestao_padrao: 1.00 });
+
+    const pctCorretorPadrao = configs.comissao_corretor_padrao;
+    const pctGestao = configs.comissao_gestao_padrao;
+
+    // 2. Leads por status
     let statusQuery = `
       SELECT status, COUNT(*) as quantidade 
       FROM leads 
@@ -205,30 +239,29 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     statusQuery += ` GROUP BY status `;
     const statusStats = await db.query(statusQuery, statusParams);
 
-    // 2. Cálculo do VGV
+    // 3. Cálculo do VGV
     let vgvQuery = `
       SELECT 
         COALESCE(SUM(r.valor_chave), 0) as total_chaves,
         COALESCE(SUM(r.saldo_devedor), 0) as total_saldo_devedor,
         COALESCE(SUM(r.valor_chave + r.saldo_devedor), 0) as total_vgv,
-        COALESCE(SUM(r.valor_chave * (COALESCE(r.comissao_pct, 5.00) / 100.0)), 0) as total_comissao_corretor
+        COALESCE(SUM(r.valor_chave * (COALESCE(r.comissao_pct, $1) / 100.0)), 0) as total_comissao_corretor
       FROM repasses r
       WHERE r.status = 'Vendido'
     `;
-    let vgvParams: any[] = [];
+    let vgvParams: any[] = [pctCorretorPadrao];
     if (isCorretor) {
-      vgvQuery += ` AND r.corretor_id = $1 `;
+      vgvQuery += ` AND r.corretor_id = $2 `;
       vgvParams.push(corretorId);
     }
     const vgvStats = await db.query(vgvQuery, vgvParams);
 
     const totalVgv = parseFloat(vgvStats.rows[0].total_vgv);
     const totalChaves = parseFloat(vgvStats.rows[0].total_chaves);
-    
     const comissaoCorretor = parseFloat(vgvStats.rows[0].total_comissao_corretor);
-    const comissaoGestor = totalVgv * 0.01;
+    const comissaoGestor = totalVgv * (pctGestao / 100.0);
 
-    // 3. Conversões e leads por corretor
+    // 4. Conversões e leads por corretor
     let perfQuery = `
       SELECT 
         c.id as corretor_id,
@@ -251,15 +284,134 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     `;
     const corretoresPerformance = await db.query(perfQuery, perfParams);
 
+    // 5. Histórico detalhado de vendas de repasses (Livro Caixa)
+    let queryVendas = `
+      SELECT 
+        r.id as repasse_id,
+        r.titulo,
+        r.bairro,
+        r.valor_chave,
+        r.saldo_devedor,
+        COALESCE(r.comissao_pct, $1) as comissao_pct,
+        c.nome as corretor_nome,
+        c.id as corretor_id,
+        l.data_criacao as data_venda
+      FROM repasses r
+      LEFT JOIN corretores c ON r.corretor_id = c.id
+      LEFT JOIN leads l ON l.repasse_id = r.id AND l.status = 'Vendido'
+      WHERE r.status = 'Vendido'
+    `;
+    let paramVendas: any[] = [pctCorretorPadrao];
+    if (isCorretor) {
+      queryVendas += ` AND r.corretor_id = $2 `;
+      paramVendas.push(corretorId);
+    }
+    queryVendas += ` ORDER BY l.data_criacao DESC NULLS LAST `;
+    const salesRes = await db.query(queryVendas, paramVendas);
+    
+    const vendasDetalhadas = salesRes.rows.map(row => {
+      const valorChave = parseFloat(row.valor_chave);
+      const saldoDevedor = parseFloat(row.saldo_devedor);
+      const vgv = valorChave + saldoDevedor;
+      const comissaoPct = parseFloat(row.comissao_pct);
+      const valorComissao = valorChave * (comissaoPct / 100.0);
+      const valorGestao = vgv * (pctGestao / 100.0);
+      return {
+        repasse_id: row.repasse_id,
+        titulo: row.titulo,
+        bairro: row.bairro,
+        corretor_nome: row.corretor_nome || 'N/A',
+        corretor_id: row.corretor_id,
+        data_venda: row.data_venda,
+        valor_chave: valorChave,
+        saldo_devedor: saldoDevedor,
+        vgv,
+        comissao_pct: comissaoPct,
+        valor_comissao: valorComissao,
+        valor_gestao: valorGestao
+      };
+    });
+
+    // 6. Métricas Adicionais Consolidadas (Captações, Aprovações, Vendas, Pendências)
+    let additionalStats = {
+      captacoes: 0,
+      aprovacoes: 0,
+      vendas: 0,
+      pendencias: 0,
+      comissaoRecebida: comissaoCorretor,
+      comissaoPendente: 0
+    };
+
+    if (isCorretor) {
+      // Captações ativas do corretor
+      const captacoesRes = await db.query(
+        "SELECT COUNT(*), COALESCE(SUM(valor_chave * (COALESCE(comissao_pct, $1) / 100.0)), 0) as comissao_pendente FROM repasses WHERE corretor_id = $2 AND status = 'Disponível'",
+        [pctCorretorPadrao, corretorId]
+      );
+      additionalStats.captacoes = parseInt(captacoesRes.rows[0].count);
+      additionalStats.comissaoPendente = parseFloat(captacoesRes.rows[0].comissao_pendente);
+
+      // Aprovações (Leads Aprovados) do corretor
+      const aprovacoesRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE corretor_id = $1 AND status = 'Aprovado'",
+        [corretorId]
+      );
+      additionalStats.aprovacoes = parseInt(aprovacoesRes.rows[0].count);
+
+      // Vendas do corretor
+      const vendasRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE corretor_id = $1 AND status = 'Vendido'",
+        [corretorId]
+      );
+      additionalStats.vendas = parseInt(vendasRes.rows[0].count);
+
+      // Pendências do corretor
+      const pendenciasRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE corretor_id = $1 AND status IN ('Novo', 'Não respondeu', 'Em negociação')",
+        [corretorId]
+      );
+      additionalStats.pendencias = parseInt(pendenciasRes.rows[0].count);
+    } else {
+      // Captações ativas globais
+      const captacoesRes = await db.query(
+        "SELECT COUNT(*), COALESCE(SUM(valor_chave * (COALESCE(comissao_pct, $1) / 100.0)), 0) as comissao_pendente FROM repasses WHERE status = 'Disponível'",
+        [pctCorretorPadrao]
+      );
+      additionalStats.captacoes = parseInt(captacoesRes.rows[0].count);
+      additionalStats.comissaoPendente = parseFloat(captacoesRes.rows[0].comissao_pendente);
+
+      // Aprovações globais
+      const aprovacoesRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE status = 'Aprovado'"
+      );
+      additionalStats.aprovacoes = parseInt(aprovacoesRes.rows[0].count);
+
+      // Vendas globais
+      const vendasRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE status = 'Vendido'"
+      );
+      additionalStats.vendas = parseInt(vendasRes.rows[0].count);
+
+      // Pendências globais
+      const pendenciasRes = await db.query(
+        "SELECT COUNT(*) FROM leads WHERE status IN ('Novo', 'Não respondeu', 'Em negociação')"
+      );
+      additionalStats.pendencias = parseInt(pendenciasRes.rows[0].count);
+    }
+
     res.json({
       leadsPorStatus: statusStats.rows,
       financeiro: {
         totalVgv,
         totalChaves,
         comissaoCorretor,
-        comissaoGestor
+        comissaoGestor,
+        pctCorretorPadrao,
+        pctGestao
       },
-      performanceCorretores: corretoresPerformance.rows
+      performanceCorretores: corretoresPerformance.rows,
+      vendasDetalhadas,
+      additionalStats
     });
   } catch (err) {
     console.error('Erro ao calcular estatísticas do dashboard:', err);

@@ -268,7 +268,8 @@ export const Marketplace: React.FC = () => {
         nome: `${encNome} (Encomenda: ${encDescricao.substring(0, 100)})`,
         telefone: telefoneComp,
         email: encEmail,
-        repasse_id: null
+        repasse_id: null,
+        corretor_id: corretorParam || undefined
       });
       showToast(`Encomenda enviada com sucesso! O corretor ${res.lead.corretor_nome} foi acionado.`, 'success');
       setModalActive('none');
@@ -298,7 +299,8 @@ export const Marketplace: React.FC = () => {
         nome: `${cadNome} (${descComp.substring(0, 120)})`,
         telefone: telefoneComp,
         email: cadEmail,
-        repasse_id: null
+        repasse_id: null,
+        corretor_id: corretorParam || undefined
       });
       showToast(`Imóvel cadastrado com sucesso! O corretor ${res.lead.corretor_nome} cuidará do caso.`, 'success');
       setModalActive('none');
@@ -381,7 +383,8 @@ export const Marketplace: React.FC = () => {
         nome: `${avNome} (${descComp.substring(0, 120)})`,
         telefone: avCelular,
         email: avEmail,
-        repasse_id: null
+        repasse_id: null,
+        corretor_id: corretorParam || undefined
       });
       showToast(`Avaliação salva com sucesso! O corretor ${res.lead.corretor_nome} está com os seus dados.`, 'success');
       setAvStep(4);
@@ -407,7 +410,8 @@ export const Marketplace: React.FC = () => {
         nome: payloadNome,
         telefone: leadTelefone,
         email: leadEmail || undefined,
-        repasse_id: selectedRepasseId || selectedDetailsRepasse?.id || null
+        repasse_id: selectedRepasseId || selectedDetailsRepasse?.id || null,
+        corretor_id: corretorParam || undefined
       });
 
       closeLeadModal();

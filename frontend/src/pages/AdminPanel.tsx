@@ -15,10 +15,11 @@ import {
   Plus,
   ArrowLeft,
   Building,
-  Users
+  Users,
+  Settings
 } from 'lucide-react';
 
-type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile' | 'team';
+type AdminTab = 'dashboard' | 'crm' | 'contracts' | 'new-repasse' | 'profile' | 'team' | 'settings';
 
 const formatCPF = (value: string) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -88,6 +89,12 @@ export const AdminPanel: React.FC = () => {
   // Modal de Detalhamento de Cálculo Financeiro
   const [selectedCalcRepasse, setSelectedCalcRepasse] = useState<Repasse | null>(null);
 
+  // Estados para as Configurações (Comissões)
+  const [comissaoCorretorPadrao, setComissaoCorretorPadrao] = useState('5.00');
+  const [comissaoGestaoPadrao, setComissaoGestaoPadrao] = useState('1.00');
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // Efeito para carregar o papel do usuário (role)
   useEffect(() => {
     const rawCorretor = localStorage.getItem('corretor');
@@ -151,6 +158,17 @@ export const AdminPanel: React.FC = () => {
   useEffect(() => {
     if (activeTab === 'dashboard') {
       loadStats();
+      const rawCorretor = localStorage.getItem('corretor');
+      if (rawCorretor) {
+        try {
+          const corretorObj = JSON.parse(rawCorretor);
+          if (corretorObj.role !== 'admin') {
+            loadRepassesData();
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
     } else if (activeTab === 'crm') {
       loadCRMData();
     } else if (activeTab === 'contracts') {
@@ -174,8 +192,40 @@ export const AdminPanel: React.FC = () => {
       }
     } else if (activeTab === 'team') {
       loadTeamData();
+    } else if (activeTab === 'settings') {
+      loadSettings();
     }
   }, [activeTab]);
+
+  const loadSettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const data = await api.get<any>('/admin/settings');
+      setComissaoCorretorPadrao(data.comissao_corretor_padrao || '5.00');
+      setComissaoGestaoPadrao(data.comissao_gestao_padrao || '1.00');
+    } catch (err) {
+      showToast('Erro ao carregar configurações de comissão.', 'danger');
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    try {
+      await api.put('/admin/settings', {
+        comissao_corretor_padrao: parseFloat(comissaoCorretorPadrao),
+        comissao_gestao_padrao: parseFloat(comissaoGestaoPadrao)
+      });
+      showToast('Configurações salvas com sucesso!', 'success');
+      loadStats();
+    } catch (err) {
+      showToast('Erro ao salvar configurações.', 'danger');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const loadStats = async () => {
     setLoadingStats(true);
@@ -528,9 +578,16 @@ export const AdminPanel: React.FC = () => {
     <div className="admin-layout">
       {/* Sidebar do Admin */}
       <aside className="admin-sidebar glass-panel">
-        <div className="sidebar-brand">
-          <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.1em' }}>Área de Repasses</span>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginTop: '6px' }}>Painel Executivo</h3>
+        <div className="sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '20px', borderBottom: '1px solid var(--border-color)', marginBottom: '15px' }}>
+          <img 
+            src="/rafael_sales_logo.jpg" 
+            alt="RS Logo" 
+            style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+          />
+          <div>
+            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Rafael Sales</h4>
+            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>Gestão RS</span>
+          </div>
         </div>
 
         <nav className="sidebar-menu">
@@ -539,7 +596,7 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setActiveTab('dashboard')}
           >
             <BarChart size={18} />
-            Dashboard (VGV)
+            Dashboard
           </button>
           <button 
             className={`sidebar-menu-item ${activeTab === 'crm' ? 'active' : ''}`}
@@ -573,16 +630,27 @@ export const AdminPanel: React.FC = () => {
             Meu Perfil
           </button>
           {isAdmin && (
-            <button 
-              className={`sidebar-menu-item ${activeTab === 'team' ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab('team');
-                setShowTeamForm(false);
-              }}
-            >
-              <Users size={18} />
-              Gestão de Equipe
-            </button>
+            <>
+              <button 
+                className={`sidebar-menu-item ${activeTab === 'team' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('team');
+                  setShowTeamForm(false);
+                }}
+              >
+                <Users size={18} />
+                Gestão de Equipe
+              </button>
+              <button 
+                className={`sidebar-menu-item ${activeTab === 'settings' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('settings');
+                }}
+              >
+                <Settings size={18} />
+                Configurações
+              </button>
+            </>
           )}
         </nav>
       </aside>
@@ -597,7 +665,8 @@ export const AdminPanel: React.FC = () => {
               <div className="empty-state"><h3>Carregando estatísticas...</h3></div>
             ) : !stats ? (
               <div className="empty-state"><h3>Nenhum dado financeiro disponível.</h3></div>
-            ) : (
+            ) : isAdmin ? (
+              // ==================== VIEW DO ADMINISTRADOR (PROPRIETÁRIO) ====================
               <>
                 <div className="metrics-grid">
                   <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--success)' }}>
@@ -618,23 +687,23 @@ export const AdminPanel: React.FC = () => {
                   </div>
                   <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--warning)' }}>
                     <div className="metric-header">
-                      <span className="metric-title">Comissão Corretores (5%)</span>
+                      <span className="metric-title">Comissão Corretores ({stats.financeiro.pctCorretorPadrao || '5.00'}%)</span>
                       <Handshake size={20} color="var(--warning)" />
                     </div>
                     <div className="metric-value">{formatCurrency(stats.financeiro.comissaoCorretor)}</div>
-                    <div className="metric-sub">5% calculados sobre o valor das chaves</div>
+                    <div className="metric-sub">Calculados sobre o valor das chaves</div>
                   </div>
                   <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #a855f7' }}>
                     <div className="metric-header">
-                      <span className="metric-title">Comissão Gestão (1%)</span>
+                      <span className="metric-title">Comissão Gestão ({stats.financeiro.pctGestao || '1.00'}%)</span>
                       <BarChart size={20} color="#a855f7" />
                     </div>
                     <div className="metric-value">{formatCurrency(stats.financeiro.comissaoGestor)}</div>
-                    <div className="metric-sub">1% sobre VGV Geral (Paulo)</div>
+                    <div className="metric-sub">Calculados sobre VGV Geral (Imobiliária RS)</div>
                   </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '30px' }}>
+                <div className="glass-panel" style={{ padding: '30px', marginBottom: '30px' }}>
                   <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '20px' }}>Desempenho da Equipe (Roleta e Conversão)</h2>
                   <div className="table-wrapper">
                     <table className="admin-table">
@@ -668,6 +737,171 @@ export const AdminPanel: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* LIVRO CAIXA DETALHADO DO FINANCEIRO */}
+                <div className="glass-panel" style={{ padding: '30px' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '20px' }}>Livro Caixa de Vendas e Repasses (Detalhamento de Comissão)</h2>
+                  {stats.vendasDetalhadas && stats.vendasDetalhadas.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '20px' }}><p>Nenhum repasse vendido registrado ainda no sistema.</p></div>
+                  ) : (
+                    <div className="table-wrapper">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Imóvel Vendido</th>
+                            <th>Corretor</th>
+                            <th>Valor da Chave</th>
+                            <th>Comissão Corretor (%)</th>
+                            <th>Pago ao Corretor</th>
+                            <th>Imobiliária ({stats.financeiro.pctGestao || '1.00'}% VGV)</th>
+                            <th>VGV Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.vendasDetalhadas && stats.vendasDetalhadas.map((v: any, idx: number) => (
+                            <tr key={idx}>
+                              <td><b>{v.titulo}</b> <br/><small style={{ color: 'var(--text-muted)' }}>{v.bairro}</small></td>
+                              <td>{v.corretor_nome}</td>
+                              <td>{formatCurrency(v.valor_chave)}</td>
+                              <td><span className="badge badge-secondary">{v.comissao_pct}%</span></td>
+                              <td><b style={{ color: 'var(--success)' }}>{formatCurrency(v.valor_comissao)}</b></td>
+                              <td><b style={{ color: 'var(--primary)' }}>{formatCurrency(v.valor_gestao)}</b></td>
+                              <td>{formatCurrency(v.vgv)}</td>
+                            </tr>
+                          ))}
+                          {/* Rodapé com Totais */}
+                          <tr style={{ background: 'rgba(0,0,0,0.02)', fontWeight: 800 }}>
+                            <td>TOTALIZADOR</td>
+                            <td>-</td>
+                            <td>{formatCurrency(stats.vendasDetalhadas ? stats.vendasDetalhadas.reduce((acc: number, item: any) => acc + item.valor_chave, 0) : 0)}</td>
+                            <td>-</td>
+                            <td style={{ color: 'var(--success)', fontSize: '1.05rem' }}>
+                              {formatCurrency(stats.vendasDetalhadas ? stats.vendasDetalhadas.reduce((acc: number, item: any) => acc + item.valor_comissao, 0) : 0)}
+                            </td>
+                            <td style={{ color: 'var(--primary)', fontSize: '1.05rem' }}>
+                              {formatCurrency(stats.vendasDetalhadas ? stats.vendasDetalhadas.reduce((acc: number, item: any) => acc + item.valor_gestao, 0) : 0)}
+                            </td>
+                            <td>{formatCurrency(stats.vendasDetalhadas ? stats.vendasDetalhadas.reduce((acc: number, item: any) => acc + item.vgv, 0) : 0)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              // ==================== VIEW DO CORRETOR (FUNCIONÁRIO) ====================
+              <>
+                <div className="metrics-grid">
+                  <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--primary)' }}>
+                    <div className="metric-header">
+                      <span className="metric-title">Captações Ativas</span>
+                      <Building size={20} color="var(--primary)" />
+                    </div>
+                    <div className="metric-value">{stats.additionalStats?.captacoes || 0}</div>
+                    <div className="metric-sub">Imóveis disponíveis sob sua gestão</div>
+                  </div>
+                  <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--warning)' }}>
+                    <div className="metric-header">
+                      <span className="metric-title">Aprovações de Crédito</span>
+                      <Handshake size={20} color="var(--warning)" />
+                    </div>
+                    <div className="metric-value">{stats.additionalStats?.aprovacoes || 0}</div>
+                    <div className="metric-sub">Clientes com proposta aprovada</div>
+                  </div>
+                  <div className="metric-card glass-panel" style={{ borderLeft: '4px solid var(--success)' }}>
+                    <div className="metric-header">
+                      <span className="metric-title">Vendas Concluídas</span>
+                      <TrendingUp size={20} color="var(--success)" />
+                    </div>
+                    <div className="metric-value">{stats.additionalStats?.vendas || 0}</div>
+                    <div className="metric-sub">Total de repasses vendidos por você</div>
+                  </div>
+                  <div className="metric-card glass-panel" style={{ borderLeft: '4px solid #a855f7' }}>
+                    <div className="metric-header">
+                      <span className="metric-title">Comissões Recebidas</span>
+                      <Key size={20} color="#a855f7" />
+                    </div>
+                    <div className="metric-value">{formatCurrency(stats.additionalStats?.comissaoRecebida || 0)}</div>
+                    <div className="metric-sub">Ganhos acumulados sobre chaves vendidas</div>
+                  </div>
+                </div>
+
+                {/* BANNER DE LINK DE PORTFÓLIO */}
+                <div className="glass-panel" style={{ padding: '24px 30px', marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)' }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Seu Portfólio de Apresentação</h4>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Compartilhe sua página com seus clientes para que vejam apenas seus imóveis e falem direto com você.</p>
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      const rawCorretorData = localStorage.getItem('corretor');
+                      const currentCorr = rawCorretorData ? JSON.parse(rawCorretorData) : null;
+                      if (currentCorr) {
+                        const link = `${window.location.origin}/?corretor=${currentCorr.id}`;
+                        navigator.clipboard.writeText(link);
+                        showToast('Link do portfólio copiado!', 'success');
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}
+                  >
+                    <span>🔗</span> Copiar Link do Meu Portfólio
+                  </button>
+                </div>
+
+                {/* TABELA DE CAPTAÇÕES DO CORRETOR COM COMISSÃO A RECEBER */}
+                <div className="glass-panel" style={{ padding: '30px' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 600, marginBottom: '20px' }}>Minhas Captações & Ganhos Estimados</h2>
+                  {repasses.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '20px' }}><p>Você ainda não cadastrou nenhuma captação no sistema.</p></div>
+                  ) : (
+                    <div className="table-wrapper">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Imóvel</th>
+                            <th>Bairro</th>
+                            <th>Valor da Chave</th>
+                            <th>Saldo Devedor</th>
+                            <th>Porcentagem de Ganho (%)</th>
+                            <th>Comissão Estimada</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {repasses.map((r) => {
+                            const valorChave = parseFloat(r.valor_chave as string);
+                            const comissaoPct = r.comissao_pct || parseFloat(comissaoCorretorPadrao);
+                            const comissaoEst = valorChave * (comissaoPct / 100.0);
+                            return (
+                              <tr key={r.id}>
+                                <td><b>{r.titulo}</b></td>
+                                <td>{r.bairro}</td>
+                                <td>{formatCurrency(valorChave)}</td>
+                                <td>{formatCurrency(parseFloat(r.saldo_devedor as string))}</td>
+                                <td><span className="badge badge-secondary">{comissaoPct}%</span></td>
+                                <td><b style={{ color: r.status === 'Vendido' ? 'var(--text-muted)' : 'var(--success)' }}>{formatCurrency(comissaoEst)}</b></td>
+                                <td>
+                                  <span className={`badge ${r.status === 'Vendido' ? 'badge-success' : 'badge-primary'}`}>
+                                    {r.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          <tr style={{ background: 'rgba(0,0,0,0.01)', fontWeight: 800 }}>
+                            <td colSpan={5}>POTENCIAL DE GANHO ACUMULADO (IMÓVEIS DISPONÍVEIS)</td>
+                            <td style={{ color: 'var(--success)', fontSize: '1.05rem' }}>
+                              {formatCurrency(stats.additionalStats?.comissaoPendente || 0)}
+                            </td>
+                            <td>-</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -838,7 +1072,7 @@ export const AdminPanel: React.FC = () => {
             ) : (
               <div className="kanban-board-premium">
                 {/* Colunas do Kanban */}
-                {(['Novo', 'Não respondeu', 'Em negociação', 'Vendido'] as const).map(columnStatus => {
+                {(['Novo', 'Não respondeu', 'Em negociação', 'Aprovado', 'Vendido'] as const).map(columnStatus => {
                   const columnLeads = leads.filter(l => l.status === columnStatus);
                   const countId = `count-${columnStatus.toLowerCase().replace(/\s+/g, '-')}`;
                   
@@ -863,6 +1097,11 @@ export const AdminPanel: React.FC = () => {
                     colBorder = 'rgba(139, 92, 246, 0.15)';
                     titleColor = '#6d28d9';
                     badgeBg = '#7c3aed';
+                  } else if (columnStatus === 'Aprovado') {
+                    colBg = '#f0fdfa';
+                    colBorder = 'rgba(20, 184, 166, 0.15)';
+                    titleColor = '#0f766e';
+                    badgeBg = '#14b8a6';
                   } else if (columnStatus === 'Vendido') {
                     colBg = '#ecfdf5';
                     colBorder = 'rgba(16, 185, 129, 0.15)';
@@ -919,6 +1158,7 @@ export const AdminPanel: React.FC = () => {
                                   <option value="Novo">Novo</option>
                                   <option value="Não respondeu">Não resp.</option>
                                   <option value="Em negociação">Em negoc.</option>
+                                  <option value="Aprovado">Aprovado</option>
                                   <option value="Vendido">Vendido</option>
                                 </select>
                               </div>
@@ -1912,6 +2152,74 @@ export const AdminPanel: React.FC = () => {
           </div>
         )}
 
+        {/* 7. ABA CONFIGURAÇÕES (ADMIN ONLY) */}
+        {activeTab === 'settings' && isAdmin && (
+          <div className="admin-section active">
+            <div className="section-header" style={{ marginBottom: '30px' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Configurações do Sistema</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '4px' }}>
+                Gerencie as comissões padrão e taxas administrativas da Imobiliária Rafael Sales.
+              </p>
+            </div>
+
+            {loadingSettings ? (
+              <div className="empty-state"><h3>Carregando configurações...</h3></div>
+            ) : (
+              <div className="glass-panel" style={{ padding: '40px', maxWidth: '600px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '24px' }}>Configuração de Comissões</h3>
+                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Comissão Padrão do Corretor (%)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className="form-control" 
+                      required 
+                      value={comissaoCorretorPadrao} 
+                      onChange={(e) => setComissaoCorretorPadrao(e.target.value)} 
+                      placeholder="5.00" 
+                    />
+                    <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                      Porcentagem padrão da comissão do corretor sobre o valor da chave (ágio).
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: '8px' }}>Taxa de Gestão da Imobiliária (%)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className="form-control" 
+                      required 
+                      value={comissaoGestaoPadrao} 
+                      onChange={(e) => setComissaoGestaoPadrao(e.target.value)} 
+                      placeholder="1.00" 
+                    />
+                    <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                      Porcentagem da comissão de gestão da imobiliária calculada sobre o VGV geral.
+                    </small>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      disabled={savingSettings}
+                      style={{ padding: '10px 24px', fontWeight: 600 }}
+                    >
+                      {savingSettings ? 'Salvando...' : 'Salvar Configurações'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* MODAL DE DETALHAMENTO FINANCEIRO */}
         {selectedCalcRepasse && (
           <div style={{
@@ -1979,8 +2287,8 @@ export const AdminPanel: React.FC = () => {
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#dc2626' }}>
-                    <span>Taxa da Imobiliária (1% do VGV):</span>
-                    <span style={{ fontWeight: 600 }}>- {formatCurrency((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * 0.01)}</span>
+                    <span>Taxa da Imobiliária ({comissaoGestaoPadrao}% do VGV):</span>
+                    <span style={{ fontWeight: 600 }}>- {formatCurrency((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * (parseFloat(comissaoGestaoPadrao) / 100))}</span>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 700, padding: '12px', backgroundColor: 'rgba(5, 150, 105, 0.05)', border: '1px solid rgba(5, 150, 105, 0.1)', borderRadius: '8px', marginTop: '8px' }}>
@@ -1988,15 +2296,15 @@ export const AdminPanel: React.FC = () => {
                     <span style={{ color: '#059669' }}>
                       {formatCurrency(
                         parseFloat(selectedCalcRepasse.valor_chave.toString()) - 
-                        (parseFloat(selectedCalcRepasse.valor_chave.toString()) * ((selectedCalcRepasse.comissao_pct || 5) / 100)) - 
-                        ((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * 0.01)
+                        (parseFloat(selectedCalcRepasse.valor_chave.toString()) * ((selectedCalcRepasse.comissao_pct || parseFloat(comissaoCorretorPadrao)) / 100)) - 
+                        ((parseFloat(selectedCalcRepasse.valor_chave.toString()) + parseFloat(selectedCalcRepasse.saldo_devedor.toString())) * (parseFloat(comissaoGestaoPadrao) / 100))
                       )}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '16px', lineHeight: '1.4' }}>
-                  💡 <b>Legenda das Comissões:</b> A comissão do corretor é adicionada ao valor pago pelo comprador no fechamento do ágio. A taxa da imobiliária (1%) é deduzida do valor de VGV final para custear a plataforma e assessoria comercial.
+                  💡 <b>Legenda das Comissões:</b> A comissão do corretor é adicionada ao valor pago pelo comprador no fechamento do ágio. A taxa da imobiliária ({comissaoGestaoPadrao}%) é deduzida do valor de VGV final para custear a plataforma e assessoria comercial.
                 </div>
               </div>
 

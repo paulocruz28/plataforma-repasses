@@ -49,8 +49,19 @@ export interface DashboardData {
     totalChaves: number;
     comissaoCorretor: number;
     comissaoGestor: number;
+    pctCorretorPadrao?: number;
+    pctGestao?: number;
   };
   performanceCorretores: CorretorPerformance[];
+  vendasDetalhadas?: any[];
+  additionalStats?: {
+    captacoes: number;
+    aprovacoes: number;
+    vendas: number;
+    pendencias: number;
+    comissaoRecebida: number;
+    comissaoPendente: number;
+  };
 }
 
 const getHeaders = () => {

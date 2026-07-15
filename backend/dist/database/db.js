@@ -1,22 +1,25 @@
-import dotenv from 'dotenv';
-import { Pool, PoolClient } from 'pg';
-import bcrypt from 'bcryptjs';
-
-dotenv.config();
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.pool = exports.query = exports.initDb = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
+const pg_1 = require("pg");
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
+dotenv_1.default.config();
+const pool = new pg_1.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
-
+exports.pool = pool;
 // Inicialização do banco de dados
-export const initDb = async (): Promise<void> => {
-  const client: PoolClient = await pool.connect();
-  try {
-    console.log('>>> [DB] Inicializando tabelas do banco de dados...');
-    
-    // 1. Tabela de Corretores
-    await client.query(`
+const initDb = async () => {
+    const client = await pool.connect();
+    try {
+        console.log('>>> [DB] Inicializando tabelas do banco de dados...');
+        // 1. Tabela de Corretores
+        await client.query(`
       CREATE TABLE IF NOT EXISTS corretores (
         id SERIAL PRIMARY KEY,
         nome VARCHAR(100) NOT NULL,
@@ -30,17 +33,15 @@ export const initDb = async (): Promise<void> => {
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
-    // Migração automática e resiliente para adicionar senha_hash, nome_exibicao, foto_url e role se a tabela já existir
-    await client.query(`
+        // Migração automática e resiliente para adicionar senha_hash, nome_exibicao, foto_url e role se a tabela já existir
+        await client.query(`
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS senha_hash VARCHAR(255);
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS nome_exibicao VARCHAR(100);
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS foto_url TEXT;
       ALTER TABLE corretores ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'corretor';
     `);
-
-    // 2. Tabela de Repasses
-    await client.query(`
+        // 2. Tabela de Repasses
+        await client.query(`
       CREATE TABLE IF NOT EXISTS repasses (
         id SERIAL PRIMARY KEY,
         titulo VARCHAR(200) NOT NULL,
@@ -59,14 +60,12 @@ export const initDb = async (): Promise<void> => {
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
-    // Migração automática e resiliente para adicionar comissao_pct se a tabela já existir
-    await client.query(`
+        // Migração automática e resiliente para adicionar comissao_pct se a tabela já existir
+        await client.query(`
       ALTER TABLE repasses ADD COLUMN IF NOT EXISTS comissao_pct NUMERIC(4, 2) DEFAULT 5.00;
     `);
-
-    // 3. Tabela de Leads
-    await client.query(`
+        // 3. Tabela de Leads
+        await client.query(`
       CREATE TABLE IF NOT EXISTS leads (
         id SERIAL PRIMARY KEY,
         nome VARCHAR(100) NOT NULL,
@@ -78,65 +77,58 @@ export const initDb = async (): Promise<void> => {
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-
-    // 4. Tabela de Configurações do Sistema
-    await client.query(`
+        // 4. Tabela de Configurações do Sistema
+        await client.query(`
       CREATE TABLE IF NOT EXISTS configuracoes (
         chave VARCHAR(100) PRIMARY KEY,
         valor VARCHAR(255) NOT NULL
       );
     `);
-
-    console.log('>>> [DB] Tabelas verificadas/criadas com sucesso.');
-
-    // 5. Semeadura de Configurações Padrão
-    const configuracoesCount = await client.query('SELECT COUNT(*) FROM configuracoes');
-    if (parseInt(configuracoesCount.rows[0].count) === 0) {
-      console.log('>>> [DB] Inserindo configurações padrão...');
-      await client.query(`
+        console.log('>>> [DB] Tabelas verificadas/criadas com sucesso.');
+        // 5. Semeadura de Configurações Padrão
+        const configuracoesCount = await client.query('SELECT COUNT(*) FROM configuracoes');
+        if (parseInt(configuracoesCount.rows[0].count) === 0) {
+            console.log('>>> [DB] Inserindo configurações padrão...');
+            await client.query(`
         INSERT INTO configuracoes (chave, valor) VALUES 
         ('comissao_corretor_padrao', '5.00'),
         ('comissao_gestao_padrao', '1.00');
       `);
-    }
-
-    // 6. Semeadura de Dados Fictícios (Seed)
-    const defaultPassword = 'Teste@4321@';
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(defaultPassword, salt);
-
-    // Garantir que todos os corretores existentes tenham uma senha criptografada se a coluna estiver nula
-    await client.query(`
+        }
+        // 6. Semeadura de Dados Fictícios (Seed)
+        const defaultPassword = 'Teste@4321@';
+        const salt = await bcryptjs_1.default.genSalt(10);
+        const hash = await bcryptjs_1.default.hash(defaultPassword, salt);
+        // Garantir que todos os corretores existentes tenham uma senha criptografada se a coluna estiver nula
+        await client.query(`
       UPDATE corretores SET senha_hash = $1 WHERE senha_hash IS NULL;
     `, [hash]);
-
-    const corretoresCount = await client.query('SELECT COUNT(*) FROM corretores');
-    if (parseInt(corretoresCount.rows[0].count) === 0) {
-      console.log('>>> [DB] Inserindo corretores padrão...');
-      await client.query(`
+        const corretoresCount = await client.query('SELECT COUNT(*) FROM corretores');
+        if (parseInt(corretoresCount.rows[0].count) === 0) {
+            console.log('>>> [DB] Inserindo corretores padrão...');
+            await client.query(`
         INSERT INTO corretores (nome, email, telefone, senha_hash, role, nome_exibicao) VALUES 
         ('Rafael Sales', 'rafael@repasses.com', '(85) 99999-1111', $1, 'admin', 'Rafael Sales (RS)'),
         ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222', $1, 'corretor', 'Paloma Ribeiro'),
         ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333', $1, 'corretor', 'Mariana Costa');
       `, [hash]);
-    } else {
-      // Se já houver registros, migra Gabriel Souza para Rafael Sales e garante a senha Teste@4321@
-      await client.query(`
+        }
+        else {
+            // Se já houver registros, migra Gabriel Souza para Rafael Sales e garante a senha Teste@4321@
+            await client.query(`
         UPDATE corretores 
         SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
         WHERE email = 'gabriel@repasses.com' OR (role = 'admin' AND nome = 'Gabriel Souza');
       `, [hash]);
-    }
-
-    const repassesCount = await client.query('SELECT COUNT(*) FROM repasses');
-    if (parseInt(repassesCount.rows[0].count) === 0) {
-      console.log('>>> [DB] Inserindo repasses de exemplo...');
-      const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
-      const c1 = corretoresRes.rows[0].id;
-      const c2 = corretoresRes.rows[1].id;
-      const c3 = corretoresRes.rows[2].id;
-
-      await client.query(`
+        }
+        const repassesCount = await client.query('SELECT COUNT(*) FROM repasses');
+        if (parseInt(repassesCount.rows[0].count) === 0) {
+            console.log('>>> [DB] Inserindo repasses de exemplo...');
+            const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
+            const c1 = corretoresRes.rows[0].id;
+            const c2 = corretoresRes.rows[1].id;
+            const c3 = corretoresRes.rows[2].id;
+            await client.query(`
         INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, corretor_id) VALUES 
         ('Apartamento Vista Mar Aldeota', 'Aldeota', 180000.00, 320000.00, 2400.00, 3, true, 85, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop&q=60', 'Lindo apartamento na Aldeota com varanda gourmet integrada e vista definitiva para o mar. Localizado em andar alto, o imóvel conta com piso em porcelanato polido de alto padrão, teto rebaixado com projeto luminotécnico em LED e armários planejados em todos os cômodos.\n\nO condomínio oferece área de lazer completa equipada com piscina de raia climatizada, academia completa, salão de jogos, brinquedoteca e guarita blindada com monitoramento 24h.\n\nRepasse de ágio muito abaixo da tabela de mercado.', $1),
         ('Casa Duplex Alphaville', 'Eusébio', 350000.00, 650000.00, 4200.00, 4, true, 280, 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&auto=format&fit=crop&q=60', 'Maravilhosa residência duplex situada em um dos condomínios mais prestigiados do Eusébio, o Alphaville Ceará. Apresenta arquitetura contemporânea marcante, pé-direito duplo na sala de estar e amplas esquadrias integradas.\n\nSão 4 amplas suítes climatizadas, piso em porcelanato rústico, deck gourmet privativo com churrasqueira a carvão integrada, jacuzzi aquecida e paisagismo impecável no quintal.\n\nCondomínio com clube completo de lazer e quadras de tênis de saibro.', $2),
@@ -147,22 +139,19 @@ export const initDb = async (): Promise<void> => {
         ('Repasse Apartamento Fátima', 'Fátima', 95000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento ventilado e muito bem conservado no coração do bairro de Fátima. Composto por 2 quartos acolhedores, sala ampla de dois ambientes, cozinha tradicional e varanda privativa.\n\nPróximo à Igreja de Fátima, hospitais, farmácias e as melhores escolas da região central.\n\nVaga de garagem coberta de fácil manobra e portão elétrico de segurança.', $1),
         ('Aluguel Comercial Aldeota', 'Aldeota', 60000.00, 150000.00, 2200.00, 0, false, 180, 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60', 'Excelente ponto comercial de 180m² ideal para instalação de clínicas de estética, consultórios médicos ou escritórios de advocacia corporativa.\n\nFachada moderna em pele de vidro refletivo, salas internas divididas com divisórias acústicas drywall de alta densidade, banheiros acessíveis e recepção decorada.\n\nEstacionamento rotativo frontal e fácil identificação de marca na avenida.', $2);
       `, [c1, c2, c3]);
-    }
-
-    const leadsCount = await client.query('SELECT COUNT(*) FROM leads');
-    if (parseInt(leadsCount.rows[0].count) === 0) {
-      console.log('>>> [DB] Inserindo leads de exemplo...');
-      const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
-      const c1 = corretoresRes.rows[0].id;
-      const c2 = corretoresRes.rows[1].id;
-      const c3 = corretoresRes.rows[2].id;
-
-      const repassesRes = await client.query('SELECT id FROM repasses ORDER BY id');
-      const r1 = repassesRes.rows[0].id;
-      const r2 = repassesRes.rows[1].id;
-      const r3 = repassesRes.rows[2].id;
-
-      await client.query(`
+        }
+        const leadsCount = await client.query('SELECT COUNT(*) FROM leads');
+        if (parseInt(leadsCount.rows[0].count) === 0) {
+            console.log('>>> [DB] Inserindo leads de exemplo...');
+            const corretoresRes = await client.query('SELECT id FROM corretores ORDER BY id');
+            const c1 = corretoresRes.rows[0].id;
+            const c2 = corretoresRes.rows[1].id;
+            const c3 = corretoresRes.rows[2].id;
+            const repassesRes = await client.query('SELECT id FROM repasses ORDER BY id');
+            const r1 = repassesRes.rows[0].id;
+            const r2 = repassesRes.rows[1].id;
+            const r3 = repassesRes.rows[2].id;
+            await client.query(`
         INSERT INTO leads (nome, telefone, email, repasse_id, corretor_id, status) VALUES 
         ('Ana Silva', '(85) 9 9999-1234', 'ana@email.com', $1, $4, 'Novo'),
         ('Carlos Santos', '(85) 9 8888-5678', 'carlos@email.com', $2, $4, 'Em negociação'),
@@ -170,15 +159,16 @@ export const initDb = async (): Promise<void> => {
         ('Julia Lima', '(85) 9 6666-3456', 'julia@email.com', $1, $5, 'Novo'),
         ('Pedro Rocha', '(85) 9 5555-7890', 'pedro@email.com', $2, $6, 'Em negociação');
       `, [r1, r2, r3, c1, c2, c3]);
+        }
     }
-
-  } catch (err) {
-    console.error('>>> [DB] Erro durante a inicialização do banco:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
+    catch (err) {
+        console.error('>>> [DB] Erro durante a inicialização do banco:', err);
+        throw err;
+    }
+    finally {
+        client.release();
+    }
 };
-
-export const query = (text: string, params?: any[]) => pool.query(text, params);
-export { pool };
+exports.initDb = initDb;
+const query = (text, params) => pool.query(text, params);
+exports.query = query;

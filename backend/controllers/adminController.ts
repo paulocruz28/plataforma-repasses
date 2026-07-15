@@ -107,3 +107,49 @@ export const updateTeamMember = async (req: Request, res: Response): Promise<any
     res.status(500).json({ error: 'Erro ao atualizar corretor.' });
   }
 };
+
+// Obter configurações globais do sistema
+export const getSettings = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { rows } = await db.query('SELECT chave, valor FROM configuracoes');
+    const settingsObj = rows.reduce((acc: any, row: any) => {
+      acc[row.chave] = row.valor;
+      return acc;
+    }, {});
+    res.json(settingsObj);
+  } catch (err) {
+    console.error('Erro ao buscar configurações:', err);
+    res.status(500).json({ error: 'Erro ao buscar configurações.' });
+  }
+};
+
+// Atualizar configurações globais do sistema (apenas Admin)
+export const updateSettings = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado. Apenas administradores podem alterar as configurações.' });
+    }
+
+    const { comissao_corretor_padrao, comissao_gestao_padrao } = req.body;
+
+    if (comissao_corretor_padrao !== undefined) {
+      await db.query(
+        'INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2',
+        ['comissao_corretor_padrao', parseFloat(comissao_corretor_padrao).toFixed(2)]
+      );
+    }
+
+    if (comissao_gestao_padrao !== undefined) {
+      await db.query(
+        'INSERT INTO configuracoes (chave, valor) VALUES ($1, $2) ON CONFLICT (chave) DO UPDATE SET valor = $2',
+        ['comissao_gestao_padrao', parseFloat(comissao_gestao_padrao).toFixed(2)]
+      );
+    }
+
+    res.json({ message: 'Configurações atualizadas com sucesso!' });
+  } catch (err) {
+    console.error('Erro ao atualizar configurações:', err);
+    res.status(500).json({ error: 'Erro ao atualizar configurações.' });
+  }
+};

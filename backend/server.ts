@@ -85,6 +85,8 @@ app.get('/api/dashboard/stats', authMiddleware, leadsController.getDashboardStat
 app.get('/api/admin/team', authMiddleware, adminController.getTeam);
 app.post('/api/admin/team', authMiddleware, adminController.createTeamMember);
 app.put('/api/admin/team/:id', authMiddleware, adminController.updateTeamMember);
+app.get('/api/admin/settings', authMiddleware, adminController.getSettings);
+app.put('/api/admin/settings', authMiddleware, adminController.updateSettings);
 
 // Contratos e Automação Jurídica
 app.post('/api/contracts/generate', authMiddleware, contractsController.generateContract);

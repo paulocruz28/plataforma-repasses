@@ -218,14 +218,7 @@ export const App: React.FC = () => {
       <BrowserRouter>
         <Header />
           <Routes>
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Marketplace />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/" element={<Marketplace />} />
             <Route path="/login" element={<Login />} />
             <Route 
               path="/admin" 

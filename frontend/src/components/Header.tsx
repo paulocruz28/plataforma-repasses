@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
   const { showToast } = useToast();
 
   const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'light');
-  const [corretor, setCorretor] = useState<{ id: number; nome: string; nome_exibicao?: string; foto_url?: string } | null>(null);
+  const [corretor, setCorretor] = useState<{ id: number; nome: string; nome_exibicao?: string; foto_url?: string; role?: string } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -57,28 +57,37 @@ export const Header: React.FC = () => {
         zIndex: 100
       }}
     >
-      <Link to="/" className="logo" style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-        🏠 Repasses<span style={{ color: 'var(--primary)' }}>Imóveis</span>
+      <Link to="/" className="logo" style={{ fontSize: '1.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
+        <img 
+          src="/rafael_sales_logo.jpg" 
+          alt="RS Logo" 
+          style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} 
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+          <span style={{ fontSize: '1.15rem', color: 'var(--text-primary)', fontWeight: 800 }}>Rafael Sales</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, letterSpacing: '0.05em' }}>REPASSES RS</span>
+        </div>
       </Link>
       
       <nav className="nav-links" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        {corretor && (
+        <NavLink 
+          to="/" 
+          className={({ isActive }) => isActive ? 'active' : ''} 
+          style={({ isActive }) => ({
+            color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: isActive ? 600 : 500,
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          })}
+        >
+          <Home size={18} />
+          Vitrine de Imóveis
+        </NavLink>
+
+        {corretor ? (
           <>
-            <NavLink 
-              to="/" 
-              className={({ isActive }) => isActive ? 'active' : ''} 
-              style={({ isActive }) => ({
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontWeight: isActive ? 600 : 500,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              })}
-            >
-              <Home size={18} />
-              Marketplace
-            </NavLink>
             <NavLink 
               to="/admin" 
               className={({ isActive }) => isActive ? 'active' : ''} 
@@ -92,51 +101,68 @@ export const Header: React.FC = () => {
               })}
             >
               <UserCheck size={18} />
-              Painel do Corretor
+              {corretor.role === 'admin' ? 'Painel Executivo' : 'Painel do Corretor'}
             </NavLink>
-          </>
-        )}
 
-        {corretor && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', marginLeft: '4px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {corretor.foto_url ? (
-                <img 
-                  src={corretor.foto_url} 
-                  alt={corretor.nome_exibicao || corretor.nome} 
-                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-hover)' }} 
-                />
-              ) : (
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--primary)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '700',
-                  fontSize: '0.95rem',
-                  boxShadow: '0 2px 8px var(--primary-glow)'
-                }}>
-                  {(corretor.nome_exibicao || corretor.nome).trim().charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                Olá, <b style={{ color: 'var(--text-primary)' }}>{corretor.nome_exibicao || corretor.nome}</b>
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px', marginLeft: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {corretor.foto_url ? (
+                  <img 
+                    src={corretor.foto_url} 
+                    alt={corretor.nome_exibicao || corretor.nome} 
+                    style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-hover)' }} 
+                  />
+                ) : (
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--primary)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '700',
+                    fontSize: '0.95rem',
+                    boxShadow: '0 2px 8px var(--primary-glow)'
+                  }}>
+                    {(corretor.nome_exibicao || corretor.nome).trim().charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                  Olá, <b style={{ color: 'var(--text-primary)' }}>{corretor.nome_exibicao || corretor.nome}</b>
+                </span>
+              </div>
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleLogout} 
+                style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.04)' }}
+                title="Sair do Painel"
+              >
+                <LogOut size={14} />
+                Sair
+              </button>
             </div>
-            <button 
-              className="btn btn-secondary" 
-              onClick={handleLogout} 
-              style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', borderColor: 'var(--danger)', color: 'var(--danger)', background: 'rgba(239, 68, 68, 0.04)' }}
-              title="Sair do Painel"
-            >
-              <LogOut size={14} />
-              Sair
-            </button>
-          </div>
+          </>
+        ) : (
+          <Link 
+            to="/login" 
+            className="btn btn-primary" 
+            style={{ 
+              padding: '8px 16px', 
+              fontSize: '0.88rem', 
+              fontWeight: 600, 
+              textDecoration: 'none',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px var(--primary-glow)'
+            }}
+          >
+            <UserCheck size={16} />
+            Entrar no Painel
+          </Link>
         )}
 
         <button 
