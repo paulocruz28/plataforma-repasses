@@ -1599,6 +1599,7 @@ export const Marketplace: React.FC = () => {
             )}
           </div>
         </div>
+      )}
       {/* Modal Detalhes do Imóvel */}
       {selectedDetailsRepasse !== null && (
         <div className="modal-backdrop active">
