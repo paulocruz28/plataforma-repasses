@@ -15,6 +15,49 @@ const formatPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
+const NEIGHBORHOODS = [
+  'Açude, Caucaia (CE)',
+  'Alto do Garrote, Caucaia (CE)',
+  'Araturi, Caucaia (CE)',
+  'Araturi (Jurema), Caucaia (CE)',
+  'Área Rural de Caucaia, Caucaia (CE)',
+  'Arianópolis (Jurema), Caucaia (CE)',
+  'Barra Nova, Caucaia (CE)',
+  'Bom Jesus, Caucaia (CE)',
+  'Cumbuco, Caucaia (CE)',
+  'Centro, Caucaia (CE)',
+  'Icaraí, Caucaia (CE)',
+  'Tabuba, Caucaia (CE)',
+  'Pacheco, Caucaia (CE)',
+  'Nova Metrópole, Caucaia (CE)',
+  'Aldeota, Fortaleza (CE)',
+  'Meireles, Fortaleza (CE)',
+  'Cocó, Fortaleza (CE)',
+  'Fátima, Fortaleza (CE)',
+  'Centro, Fortaleza (CE)',
+  'Dionísio Torres, Fortaleza (CE)',
+  'Joaquim Távora, Fortaleza (CE)',
+  'Papicu, Fortaleza (CE)',
+  'Varjota, Fortaleza (CE)',
+  'Mucuripe, Fortaleza (CE)',
+  'Guararapes, Fortaleza (CE)',
+  'Engenheiro Luciano Cavalcante, Fortaleza (CE)',
+  'Passaré, Fortaleza (CE)',
+  'Maraponga, Fortaleza (CE)',
+  'Parangaba, Fortaleza (CE)',
+  'Messejana, Fortaleza (CE)',
+  'Cambeba, Fortaleza (CE)',
+  'Lagoa Redonda, Fortaleza (CE)',
+  'José de Alencar, Fortaleza (CE)',
+  'Serrinha, Fortaleza (CE)',
+  'Cidade dos Funcionários, Fortaleza (CE)',
+  'Alphaville, Eusébio (CE)',
+  'Centro, Eusébio (CE)',
+  'Pires Façanha, Eusébio (CE)',
+  'Maracanaú, Região Metropolitana (CE)',
+  'Jereissati, Maracanaú (CE)'
+];
+
 export const Marketplace: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
@@ -61,15 +104,18 @@ export const Marketplace: React.FC = () => {
   // Estados para "Avaliar meu imóvel"
   const [avStep, setAvStep] = useState(1);
   const [avBairro, setAvBairro] = useState('');
+  const [avBairroInput, setAvBairroInput] = useState('');
+  const [showAvBairroDropdown, setShowAvBairroDropdown] = useState(false);
   const [avRua, setAvRua] = useState('');
   const [avNumero, setAvNumero] = useState('');
   const [avComplemento, setAvComplemento] = useState('');
   const [avTipo, setAvTipo] = useState('');
   const [avNegocio, setAvNegocio] = useState('');
   const [avArea, setAvArea] = useState('');
-  const [avQuartos, setAvQuartos] = useState('');
-  const [avVagas, setAvVagas] = useState('');
-  const [avBanheiros, setAvBanheiros] = useState('');
+  const [avQuartos, setAvQuartos] = useState('Ignorar');
+  const [avSuites, setAvSuites] = useState('Ignorar');
+  const [avVagas, setAvVagas] = useState('Ignorar');
+  const [avBanheiros, setAvBanheiros] = useState('Ignorar');
   const [avNome, setAvNome] = useState('');
   const [avCelular, setAvCelular] = useState('');
   const [avEmail, setAvEmail] = useState('');
@@ -137,6 +183,18 @@ export const Marketplace: React.FC = () => {
 
     return () => clearTimeout(delayDebounce);
   }, [busca, bairro, quartos, varanda, chaveMax, saldoMax, fetchRepasses, corretorParam]);
+
+  // Click outside para fechar o dropdown de bairros da avaliação
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.bairro-autocomplete-dropdown') && !target.closest('input[placeholder="Digite para buscar o bairro..."]')) {
+        setShowAvBairroDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   // Lógica de Compartilhamento no WhatsApp
   const handleShare = (id: number) => {
@@ -1132,14 +1190,15 @@ export const Marketplace: React.FC = () => {
       {modalActive === 'avaliar' && (
         <div className="modal-backdrop active">
           <div className="modal-content glass-panel" style={{ maxWidth: '650px' }}>
-            <div className="modal-header">
-              <h2>Avaliar Imóvel Grátis</h2>
-              <button className="modal-close" onClick={() => setModalActive('none')}>&times;</button>
+            <div className="modal-header" style={{ borderBottom: 'none', paddingBottom: '0' }}>
+              <button className="modal-close" onClick={() => setModalActive('none')} style={{ marginLeft: 'auto' }}>&times;</button>
             </div>
             
-            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.9rem', marginBottom: '16px' }}>
-              Avalie seu imóvel com a nossa inteligência de dados. Descubra quanto cobrar pelo seu imóvel.
-            </p>
+            <div style={{ textAlign: 'center', marginBottom: '16px', padding: '0 20px' }}>
+              <h2 style={{ fontSize: '1.7rem', fontWeight: 700, color: '#f97316', margin: '0 0 4px', fontFamily: 'sans-serif' }}>
+                Descubra quanto cobrar pelo seu imóvel
+              </h2>
+            </div>
 
             {/* Indicador de passos */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '15px 50px 25px' }}>
@@ -1164,31 +1223,56 @@ export const Marketplace: React.FC = () => {
               <div>
                 <h3 style={{ fontSize: '1.15rem', marginBottom: '16px', fontWeight: 700 }}>Localização</h3>
                 
-                {/* Campo Bairro */}
-                <div className="form-group" style={{ position: 'relative' }}>
+                {/* Campo Bairro com Autocomplete (Imagem 1) */}
+                <div className="form-group" style={{ position: 'relative', marginBottom: '16px' }}>
                   <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Bairro *</label>
                   <div className={avErrors.bairro ? 'invalid-input-container' : ''}>
                     {avErrors.bairro && <span className="invalid-input-badge">INFORME</span>}
-                    <select 
-                      className="form-control" 
-                      value={avBairro} 
-                      onChange={(e) => setAvBairro(e.target.value)}
-                      style={{ border: avErrors.bairro ? 'none' : '' }}
-                    >
-                      <option value="">Selecione o Bairro...</option>
-                      <option value="Aldeota">Aldeota</option>
-                      <option value="Meireles">Meireles</option>
-                      <option value="Cocó">Cocó</option>
-                      <option value="Fátima">Fátima</option>
-                      <option value="Eusébio">Eusébio</option>
-                      <option value="Cumbuco">Cumbuco</option>
-                      <option value="Passaré">Passaré</option>
-                    </select>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={avBairroInput} 
+                        onChange={(e) => {
+                          setAvBairroInput(e.target.value);
+                          setAvBairro(e.target.value);
+                          setShowAvBairroDropdown(true);
+                        }}
+                        onFocus={() => setShowAvBairroDropdown(true)}
+                        placeholder="Digite para buscar o bairro..."
+                        style={{ border: avErrors.bairro ? 'none' : '', paddingRight: '40px' }}
+                      />
+                      <Search size={18} style={{ position: 'absolute', right: '12px', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    </div>
+
+                    {/* Autocomplete Dropdown overlay */}
+                    {showAvBairroDropdown && (
+                      <div className="bairro-autocomplete-dropdown">
+                        {NEIGHBORHOODS.filter(n => n.toLowerCase().includes(avBairroInput.toLowerCase())).map((n, i) => (
+                          <div 
+                            key={i} 
+                            className="bairro-autocomplete-item" 
+                            onClick={() => {
+                              setAvBairro(n);
+                              setAvBairroInput(n);
+                              setShowAvBairroDropdown(false);
+                            }}
+                          >
+                            {n}
+                          </div>
+                        ))}
+                        {NEIGHBORHOODS.filter(n => n.toLowerCase().includes(avBairroInput.toLowerCase())).length === 0 && (
+                          <div style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center' }}>
+                            Nenhum bairro encontrado. Use o digitado.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Rua, Número, Complemento */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '16px' }}>
                   <div className="form-group">
                     <label style={{ fontSize: '0.78rem' }}>Rua</label>
                     <input type="text" className="form-control" value={avRua} onChange={(e) => setAvRua(e.target.value)} placeholder="Rua B" />
@@ -1204,7 +1288,7 @@ export const Marketplace: React.FC = () => {
                 </div>
 
                 {/* Tipo e Negócio */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                   {/* Tipo */}
                   <div className="form-group" style={{ position: 'relative' }}>
                     <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tipo *</label>
@@ -1261,42 +1345,106 @@ export const Marketplace: React.FC = () => {
             {/* Step 2: Características */}
             {avStep === 2 && (
               <div>
-                <h3 style={{ fontSize: '1.15rem', marginBottom: '16px', fontWeight: 700 }}>Características do Imóvel</h3>
+                <h3 style={{ fontSize: '1.15rem', marginBottom: '16px', fontWeight: 700 }}>Características</h3>
 
-                <div className="form-group">
-                  <label>Área Útil (m²) *</label>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    required 
-                    value={avArea} 
-                    onChange={(e) => setAvArea(e.target.value)} 
-                    placeholder="Ex: 85" 
-                  />
+                {/* Grid para Área Útil, Quartos e Suítes */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  {/* Área Útil */}
+                  <div className="form-group" style={{ position: 'relative' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Área Útil</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input 
+                        type="number" 
+                        className="form-control" 
+                        required 
+                        value={avArea} 
+                        onChange={(e) => setAvArea(e.target.value)} 
+                        placeholder="" 
+                        style={{ paddingRight: '40px' }}
+                      />
+                      <span style={{ position: 'absolute', right: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>m²</span>
+                    </div>
+                  </div>
+
+                  {/* Quartos */}
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Quartos</label>
+                    <select className="form-control" value={avQuartos} onChange={(e) => setAvQuartos(e.target.value)}>
+                      <option value="Ignorar">Ignorar</option>
+                      <option value="Nenhum">Nenhum</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4 ou mais">4 ou mais</option>
+                    </select>
+                  </div>
+
+                  {/* Suítes */}
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Suítes</label>
+                    <select className="form-control" value={avSuites} onChange={(e) => setAvSuites(e.target.value)}>
+                      <option value="Ignorar">Ignorar</option>
+                      <option value="Nenhum">Nenhum</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4 ou mais">4 ou mais</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                {/* Grid para Banheiros e Vagas */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 2fr', gap: '12px', marginBottom: '24px' }}>
+                  {/* Banheiros */}
                   <div className="form-group">
-                    <label>Quartos</label>
-                    <input type="number" className="form-control" value={avQuartos} onChange={(e) => setAvQuartos(e.target.value)} placeholder="3" />
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Banheiros</label>
+                    <select className="form-control" value={avBanheiros} onChange={(e) => setAvBanheiros(e.target.value)}>
+                      <option value="Ignorar">Ignorar</option>
+                      <option value="Nenhum">Nenhum</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4 ou mais">4 ou mais</option>
+                    </select>
                   </div>
-                  <div className="form-group">
-                    <label>Vagas</label>
-                    <input type="number" className="form-control" value={avVagas} onChange={(e) => setAvVagas(e.target.value)} placeholder="2" />
-                  </div>
-                  <div className="form-group">
-                    <label>Banheiros</label>
-                    <input type="number" className="form-control" value={avBanheiros} onChange={(e) => setAvBanheiros(e.target.value)} placeholder="2" />
+
+                  {/* Vagas */}
+                  <div className="form-group" style={{ maxWidth: '100%' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Vagas</label>
+                    <select className="form-control" value={avVagas} onChange={(e) => setAvVagas(e.target.value)}>
+                      <option value="Ignorar">Ignorar</option>
+                      <option value="Nenhum">Nenhum</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4 ou mais">4 ou mais</option>
+                    </select>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setAvStep(1)}>
-                    Voltar
+                {/* Botões de Ação */}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', alignItems: 'center' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    style={{ flex: 1, height: '48px', fontSize: '1rem', fontWeight: 600 }} 
+                    onClick={() => setAvStep(1)}
+                  >
+                    Anterior
                   </button>
-                  <button type="button" className="btn-orange-find" style={{ flex: 2 }} onClick={handleValuationStep2}>
-                    Calcular Valor &rarr;
+                  <button 
+                    type="button" 
+                    className="btn-orange-find" 
+                    style={{ flex: 2, height: '48px', fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                    onClick={handleValuationStep2}
+                  >
+                    Próximo
                   </button>
+                </div>
+
+                {/* Footer small powered by */}
+                <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Powered by NIVU
                 </div>
               </div>
             )}
