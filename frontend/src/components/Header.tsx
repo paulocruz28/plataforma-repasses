@@ -136,12 +136,33 @@ export const Header: React.FC = () => {
         )}
 
         <button 
-          className="btn btn-secondary" 
           onClick={toggleTheme} 
-          style={{ padding: '8px 12px', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ 
+            width: '36px', 
+            height: '36px', 
+            borderRadius: '50%', 
+            border: '1px solid var(--border-color)', 
+            backgroundColor: 'transparent',
+            color: 'var(--text-primary)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            padding: 0
+          }}
+          className="theme-toggle-btn"
           title="Alternar Tema"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)';
+            e.currentTarget.style.borderColor = 'var(--text-secondary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+          }}
         >
-          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
       </nav>
     </header>

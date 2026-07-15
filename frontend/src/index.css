@@ -894,4 +894,429 @@ body {
   }
 }
 
+/* Redesign Premium do Marketplace (Inova Imóveis Style) */
+.hero-beach {
+  text-align: center;
+  padding: 100px 20px 80px;
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(rgba(11, 15, 25, 0.5), rgba(11, 15, 25, 0.6)), url('/hero_beach_pier.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 24px 24px;
+  box-shadow: var(--shadow-md);
+}
+
+.hero-beach h1 {
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+}
+
+.hero-beach h1 span {
+  color: #f97316; /* Laranja da Inova */
+}
+
+.hero-beach p {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Barra de Pesquisa Flutuante Inova */
+.search-bar-floating-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 10px 10px 24px;
+  max-width: 1000px;
+  width: 95%;
+  margin: -40px auto 0;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.search-field-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 15px;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-field-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+.search-field-group select,
+.search-field-group input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1e293b;
+  width: 100%;
+  font-family: inherit;
+}
+
+.search-field-group select {
+  cursor: pointer;
+}
+
+.search-field-group input::placeholder {
+  color: #94a3b8;
+}
+
+.btn-orange-find {
+  background: #f97316;
+  color: #ffffff !important;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+}
+
+.btn-orange-find:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45);
+}
+
+.btn-filter-more {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #475569 !important;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-filter-more:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b !important;
+}
+
+/* Quick Filter Pills */
+.quick-pills-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 25px;
+  flex-wrap: wrap;
+}
+
+.quick-pill-btn {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff !important;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Seção de Destaque Único */
+.destaque-container {
+  background: #FAF6F0;
+  padding: 80px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .destaque-container {
+  background: #111522;
+}
+
+.destaque-section {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 50px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.destaque-image-wrapper {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  aspect-ratio: 1.4;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.destaque-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.destaque-image-wrapper:hover img {
+  transform: scale(1.02);
+}
+
+.destaque-info {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.destaque-tag {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #f97316;
+  letter-spacing: 2px;
+}
+
+.destaque-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.destaque-description {
+  font-size: 1.02rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.destaque-link {
+  color: #f97316 !important;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  transition: gap 0.2s ease;
+  width: fit-content;
+}
+
+.destaque-link:hover {
+  gap: 10px;
+  color: #ea580c !important;
+}
+
+/* Categorias / Tabs Estilo Inova */
+.category-tabs-container {
+  text-align: center;
+  margin: 60px auto 30px;
+  max-width: 1200px;
+}
+
+.category-tabs-container h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 25px;
+  color: var(--text-primary);
+}
+
+.category-tabs {
+  display: inline-flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 6px;
+  border-radius: 30px;
+  border: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+[data-theme="dark"] .category-tabs {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.category-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.category-tab:hover {
+  color: var(--text-primary);
+}
+
+.category-tab.active {
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .category-tab.active {
+  background: var(--panel-bg);
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: var(--border-color);
+}
+
+/* Seção Parede de Tijolos (Terceira Imagem) */
+.brick-section {
+  background-image: linear-gradient(rgba(250, 248, 246, 0.95), rgba(250, 248, 246, 0.95)), url('https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1200&auto=format&fit=crop&q=80');
+  background-size: cover;
+  background-attachment: scroll;
+  padding: 80px 20px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .brick-section {
+  background-image: linear-gradient(rgba(11, 15, 25, 0.95), rgba(11, 15, 25, 0.95)), url('https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=1200&auto=format&fit=crop&q=80');
+}
+
+.brick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.brick-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 10px;
+}
+
+.brick-icon-wrapper {
+  width: 54px;
+  height: 54px;
+  background: rgba(59, 130, 246, 0.06);
+  color: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.08);
+}
+
+.brick-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.brick-description {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 290px;
+}
+
+.brick-link {
+  color: var(--text-primary) !important;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 2px solid var(--text-primary);
+  padding-bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.brick-link:hover {
+  color: #3b82f6 !important;
+  border-color: #3b82f6;
+}
+
+@media (max-width: 992px) {
+  .search-bar-floating-card {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 16px;
+    padding: 20px;
+    gap: 15px;
+    margin-top: -20px;
+  }
+  .search-field-group {
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+  .btn-orange-find {
+    width: 100%;
+  }
+  .btn-filter-more {
+    width: 100%;
+    justify-content: center;
+  }
+  .destaque-section {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .brick-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+
 

@@ -82,7 +82,7 @@ export const initDb = async (): Promise<void> => {
     console.log('>>> [DB] Tabelas verificadas/criadas com sucesso.');
 
     // 4. Semeadura de Dados Fictícios (Seed)
-    const defaultPassword = '123456';
+    const defaultPassword = 'Teste@4321@';
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(defaultPassword, salt);
 
@@ -113,9 +113,13 @@ export const initDb = async (): Promise<void> => {
       await client.query(`
         INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, corretor_id) VALUES 
         ('Apartamento Vista Mar Aldeota', 'Aldeota', 180000.00, 320000.00, 2400.00, 3, true, 85, 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop&q=60', 'Lindo apartamento na Aldeota com varanda ampla e vista mar permanente. Próximo a shoppings e escolas.', $1),
-        ('Compacto Moderno Meireles', 'Meireles', 120000.00, 190000.00, 1350.00, 1, false, 42, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&auto=format&fit=crop&q=60', 'Studio mobiliado e decorado a 2 quadras da Beira Mar. Perfeito para rentabilidade ou moradia prática.', $2),
-        ('Familiar Confortável Cocó', 'Cocó', 220000.00, 450000.00, 3100.00, 3, true, 110, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60', 'Excelente imóvel para família ao lado do Parque do Cocó. Lazer completo e segurança 24h.', $3),
-        ('Repasse Aconchegante Fátima', 'Fátima', 95000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento super conservado no bairro de Fátima. Área de lazer, varanda ventilada e ótima localização.', $1);
+        ('Casa Duplex Alphaville', 'Eusébio', 350000.00, 650000.00, 4200.00, 4, true, 280, 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&auto=format&fit=crop&q=60', 'Maravilhosa casa duplex em condomínio de luxo Alphaville. Lazer privativo com piscina e churrasqueira.', $2),
+        ('Apartamento Familiar Cocó', 'Cocó', 220000.00, 450000.00, 3100.00, 3, true, 110, 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500&auto=format&fit=crop&q=60', 'Excelente imóvel para família ao lado do Parque do Cocó. Lazer completo e segurança 24h.', $3),
+        ('Casa de Praia Cumbuco', 'Cumbuco', 150000.00, 300000.00, 1800.00, 3, true, 150, 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=500&auto=format&fit=crop&q=60', 'Repasse de casa aconchegante a 100m da praia do Cumbuco. Excelente para aluguel por temporada ou veraneio.', $1),
+        ('Casa em Condomínio Passaré', 'Passaré', 130000.00, 250000.00, 1600.00, 3, false, 120, 'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=500&auto=format&fit=crop&q=60', 'Casa duplex em condomínio fechado super seguro. Próximo ao BNB com área de lazer e churrasqueira comum.', $2),
+        ('Compacto Moderno Meireles', 'Meireles', 120000.00, 190000.00, 1350.00, 1, false, 42, 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=500&auto=format&fit=crop&q=60', 'Studio mobiliado e decorado a 2 quadras da Beira Mar. Perfeito para rentabilidade ou moradia prática.', $3),
+        ('Repasse Apartamento Fátima', 'Fátima', 95000.00, 210000.00, 1500.00, 2, true, 68, 'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=500&auto=format&fit=crop&q=60', 'Apartamento super conservado no bairro de Fátima. Área de lazer, varanda ventilada e ótima localização.', $1),
+        ('Aluguel Comercial Aldeota', 'Aldeota', 60000.00, 150000.00, 2200.00, 0, false, 180, 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=500&auto=format&fit=crop&q=60', 'Ponto comercial excelente para escritórios, clínicas ou consultórios. Ótima localização na Aldeota.', $2);
       `, [c1, c2, c3]);
     }
 
