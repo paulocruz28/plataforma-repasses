@@ -79,6 +79,7 @@ export const Marketplace: React.FC = () => {
 
   // Controle de Modais Customizados
   const [modalActive, setModalActive] = useState<'none' | 'encomendar' | 'financiamento' | 'cadastrar' | 'avaliar'>('none');
+  const [selectedDetailsRepasse, setSelectedDetailsRepasse] = useState<Repasse | null>(null);
 
   // Estados para "Encomende seu imóvel"
   const [encDescricao, setEncDescricao] = useState('');
@@ -298,7 +299,6 @@ export const Marketplace: React.FC = () => {
     const errors: Record<string, boolean> = {};
     if (!avBairro) errors.bairro = true;
     if (!avTipo) errors.tipo = true;
-    if (!avNegocio) errors.negocio = true;
     
     if (Object.keys(errors).length > 0) {
       setAvErrors(errors);
@@ -527,7 +527,7 @@ export const Marketplace: React.FC = () => {
             <button className="quick-pill-btn" onClick={() => showToast('Digite o nome do bairro no campo de busca para filtrar por código.', 'info')}>
               Busca por código
             </button>
-            <button className="quick-pill-btn" onClick={() => { setAvStep(1); setModalActive('avaliar'); }}>
+            <button className="quick-pill-btn" onClick={() => { setAvStep(0); setModalActive('avaliar'); }}>
               Avaliar meu imóvel ↗
             </button>
             <button className="quick-pill-btn" onClick={() => {
@@ -708,8 +708,7 @@ export const Marketplace: React.FC = () => {
               <RepasseCard 
                 key={item.id} 
                 item={item} 
-                onNegociar={openLeadModal} 
-                onShare={handleShare} 
+                onSelect={(selectedItem) => setSelectedDetailsRepasse(selectedItem)}
               />
             ))}
           </div>
@@ -1218,10 +1217,85 @@ export const Marketplace: React.FC = () => {
               </div>
             </div>
 
+            {/* Step 0: Escolha inicial (Venda ou Aluguel) */}
+            {avStep === 0 && (
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '20px', fontWeight: 700 }}>
+                  Avaliar o valor do imóvel para venda ou para alugar?
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', margin: '20px 0' }}>
+                  {/* Opção Venda */}
+                  <div 
+                    onClick={() => {
+                      setAvNegocio('Venda');
+                      setAvStep(1);
+                    }}
+                    style={{
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '16px',
+                      padding: '30px 20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      background: 'rgba(0,0,0,0.01)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#f97316';
+                      e.currentTarget.style.transform = 'scale(1.03)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '12px' }}>🏷️</span>
+                    <strong style={{ fontSize: '1.15rem', display: 'block', color: 'var(--text-primary)' }}>Avaliar para Venda</strong>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginTop: '8px' }}>
+                      Descobrir o valor de mercado estimado do meu imóvel para vendê-lo.
+                    </span>
+                  </div>
+
+                  {/* Opção Aluguel */}
+                  <div 
+                    onClick={() => {
+                      setAvNegocio('Aluguel');
+                      setAvStep(1);
+                    }}
+                    style={{
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '16px',
+                      padding: '30px 20px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      background: 'rgba(0,0,0,0.01)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#f97316';
+                      e.currentTarget.style.transform = 'scale(1.03)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  >
+                    <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '12px' }}>🔑</span>
+                    <strong style={{ fontSize: '1.15rem', display: 'block', color: 'var(--text-primary)' }}>Avaliar para Aluguel</strong>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginTop: '8px' }}>
+                      Estimar o valor recomendado de aluguel mensal do meu imóvel.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Step 1: Localização */}
             {avStep === 1 && (
               <div>
-                <h3 style={{ fontSize: '1.15rem', marginBottom: '16px', fontWeight: 700 }}>Localização</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '1.15rem', margin: '0', fontWeight: 700 }}>Localização</h3>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    Tipo de Avaliação: <strong style={{ color: '#f97316' }}>{avNegocio}</strong>
+                  </span>
+                </div>
                 
                 {/* Campo Bairro com Autocomplete (Imagem 1) */}
                 <div className="form-group" style={{ position: 'relative', marginBottom: '16px' }}>
@@ -1287,58 +1361,47 @@ export const Marketplace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Tipo e Negócio */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                  {/* Tipo */}
-                  <div className="form-group" style={{ position: 'relative' }}>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tipo *</label>
-                    <div className={avErrors.tipo ? 'invalid-input-container' : ''}>
-                      {avErrors.tipo && <span className="invalid-input-badge">INFORME</span>}
-                      <select 
-                        className="form-control" 
-                        value={avTipo} 
-                        onChange={(e) => setAvTipo(e.target.value)}
-                        style={{ border: avErrors.tipo ? 'none' : '' }}
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="Apartamento">Apartamento</option>
-                        <option value="Studio">Studio</option>
-                        <option value="Loft">Loft</option>
-                        <option value="Casa">Casa</option>
-                        <option value="Casa em condomínio">Casa em condomínio</option>
-                        <option value="Sala">Sala</option>
-                        <option value="Terreno">Terreno</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Negócio (Venda e Aluguel) */}
-                  <div className="form-group" style={{ position: 'relative' }}>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Negócio *</label>
-                    <div className={avErrors.negocio ? 'invalid-input-container' : ''}>
-                      {avErrors.negocio && <span className="invalid-input-badge">INFORME</span>}
-                      <select 
-                        className="form-control" 
-                        value={avNegocio} 
-                        onChange={(e) => setAvNegocio(e.target.value)}
-                        style={{ border: avErrors.negocio ? 'none' : '' }}
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="Venda">Venda</option>
-                        <option value="Aluguel">Aluguel</option>
-                      </select>
-                    </div>
+                {/* Tipo de Imóvel */}
+                <div className="form-group" style={{ position: 'relative', marginBottom: '20px' }}>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tipo do Imóvel *</label>
+                  <div className={avErrors.tipo ? 'invalid-input-container' : ''}>
+                    {avErrors.tipo && <span className="invalid-input-badge">INFORME</span>}
+                    <select 
+                      className="form-control" 
+                      value={avTipo} 
+                      onChange={(e) => setAvTipo(e.target.value)}
+                      style={{ border: avErrors.tipo ? 'none' : '' }}
+                    >
+                      <option value="">Selecione o Tipo...</option>
+                      <option value="Apartamento">Apartamento</option>
+                      <option value="Studio">Studio</option>
+                      <option value="Loft">Loft</option>
+                      <option value="Casa">Casa</option>
+                      <option value="Casa em condomínio">Casa em condomínio</option>
+                      <option value="Sala">Sala</option>
+                      <option value="Terreno">Terreno</option>
+                    </select>
                   </div>
                 </div>
 
-                <button 
-                  type="button" 
-                  className="btn-orange-find" 
-                  style={{ width: '100%', marginTop: '16px' }}
-                  onClick={handleCalculateValuation}
-                >
-                  Próximo &rarr;
-                </button>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    style={{ flex: 1 }}
+                    onClick={() => setAvStep(0)}
+                  >
+                    Voltar
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn-orange-find" 
+                    style={{ flex: 2 }}
+                    onClick={handleCalculateValuation}
+                  >
+                    Próximo &rarr;
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1534,6 +1597,146 @@ export const Marketplace: React.FC = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      {/* Modal Detalhes do Imóvel */}
+      {selectedDetailsRepasse !== null && (
+        <div className="modal-backdrop active">
+          <div className="modal-content glass-panel" style={{ maxWidth: '780px', padding: '0', overflow: 'hidden' }}>
+            {/* Header com foto grande */}
+            <div style={{ position: 'relative', height: '320px', width: '100%' }}>
+              <span className="badge badge-success" style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10, fontSize: '0.9rem', padding: '8px 16px' }}>
+                {selectedDetailsRepasse.status || 'Disponível'}
+              </span>
+              <button 
+                onClick={() => setSelectedDetailsRepasse(null)} 
+                style={{ 
+                  position: 'absolute', 
+                  top: '20px', 
+                  right: '20px', 
+                  zIndex: 10, 
+                  background: 'rgba(0,0,0,0.6)', 
+                  color: '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '50%', 
+                  width: '36px', 
+                  height: '36px', 
+                  fontSize: '1.4rem', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                &times;
+              </button>
+              <img 
+                src={selectedDetailsRepasse.imagem_url} 
+                alt={selectedDetailsRepasse.titulo} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60';
+                }}
+              />
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)',
+                padding: '40px 30px 20px',
+                color: '#ffffff'
+              }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f97316', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Oportunidade de Repasse
+                </span>
+                <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '4px 0 0', textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
+                  {selectedDetailsRepasse.titulo}
+                </h2>
+              </div>
+            </div>
+
+            {/* Conteúdo do Imóvel */}
+            <div style={{ padding: '30px', maxHeight: '420px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem', fontWeight: 600 }}>
+                  📍 Bairro: <strong style={{ color: 'var(--primary)' }}>{selectedDetailsRepasse.bairro}</strong>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
+                  🛏️ <strong>{selectedDetailsRepasse.quartos}</strong> {selectedDetailsRepasse.quartos > 1 ? 'Quartos' : 'Quarto'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
+                  📐 <strong>{selectedDetailsRepasse.area || 0} m²</strong> Área útil
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
+                  🌅 <strong>{selectedDetailsRepasse.varanda ? 'Com Varanda' : 'Sem Varanda'}</strong>
+                </span>
+              </div>
+
+              {/* Informações Financeiras */}
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px' }}>Condições Financeiras</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', background: 'rgba(0,0,0,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor da Chave (Ágio)</span>
+                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)' }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.valor_chave.toString()))}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Saldo Devedor</span>
+                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.saldo_devedor.toString()))}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor da Parcela</span>
+                  <span style={{ display: 'block', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {selectedDetailsRepasse.parcela ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(selectedDetailsRepasse.parcela.toString())) : 'N/A'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Descrição Completa */}
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Descrição</h3>
+              <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
+                {selectedDetailsRepasse.descricao || 'Nenhuma descrição adicional fornecida para este repasse imobiliário.'}
+              </p>
+
+              {/* Corretor Responsável */}
+              <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '24px', paddingTop: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block' }}>Corretor Responsável</span>
+                  <strong style={{ fontSize: '0.98rem' }}>{selectedDetailsRepasse.corretor_nome || 'Equipe Repasses'}</strong>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                  Código do Imóvel: #{selectedDetailsRepasse.id}
+                </div>
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div style={{ padding: '20px 30px', background: 'var(--panel-bg)', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => handleShare(selectedDetailsRepasse.id)}
+                style={{ height: '48px', padding: '0 20px', fontWeight: 600 }}
+              >
+                Compartilhar WhatsApp
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={() => {
+                  const id = selectedDetailsRepasse.id;
+                  setSelectedDetailsRepasse(null);
+                  openLeadModal(id);
+                }}
+                style={{ height: '48px', padding: '0 30px', fontWeight: 700 }}
+              >
+                Tenho Interesse / Negociar
+              </button>
+            </div>
           </div>
         </div>
       )}

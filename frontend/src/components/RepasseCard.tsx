@@ -1,71 +1,63 @@
 import React from 'react';
 import type { Repasse } from '../services/api';
-import { Share2 } from 'lucide-react';
 
 interface RepasseCardProps {
   item: Repasse;
-  onNegociar: (id: number) => void;
-  onShare: (id: number) => void;
+  onSelect: (item: Repasse) => void;
 }
 
-export const RepasseCard: React.FC<RepasseCardProps> = ({ item, onNegociar, onShare }) => {
-  const formatCurrency = (val: string | number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(val.toString()));
-  };
-
+export const RepasseCard: React.FC<RepasseCardProps> = ({ item, onSelect }) => {
   return (
-    <div className="repasse-card glass-panel">
-      <div className="card-image-wrapper">
-        <span className="badge badge-success card-badge">{item.status}</span>
+    <div 
+      className="repasse-card glass-panel" 
+      onClick={() => onSelect(item)} 
+      style={{ 
+        cursor: 'pointer', 
+        overflow: 'hidden', 
+        borderRadius: '16px', 
+        position: 'relative', 
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        border: '1px solid var(--border-color)',
+        height: '280px'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-6px)';
+        e.currentTarget.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.15)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <div className="card-image-wrapper" style={{ height: '100%', width: '100%', position: 'relative' }}>
+        <span className="badge badge-success card-badge" style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 10 }}>
+          {item.status || 'Disponível'}
+        </span>
         <img 
           src={item.imagem_url} 
           alt={item.titulo} 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60';
           }}
         />
-      </div>
-      <div className="card-details">
-        <h3>{item.titulo}</h3>
-        <div className="card-location">
-          📍 <span>{item.bairro}</span>
-        </div>
-        <div className="card-specs">
-          <span>🛏️ {item.quartos} {item.quartos > 1 ? 'Quartos' : 'Quarto'}</span>
-          <span>📐 {item.area ? item.area : 0} m²</span>
-          <span>🌅 {item.varanda ? 'Com Varanda' : 'Sem Varanda'}</span>
-        </div>
-        <div className="card-financials">
-          <div className="financial-item">
-            <span className="financial-label">Valor da Chave (Ágio)</span>
-            <span className="financial-value highlight">{formatCurrency(item.valor_chave)}</span>
-          </div>
-          <div className="financial-item">
-            <span className="financial-label">Saldo Devedor</span>
-            <span className="financial-value">{formatCurrency(item.saldo_devedor)}</span>
-          </div>
-        </div>
-        <div className="card-footer">
-          <div className="broker-info">
-            <span className="broker-label">Responsável</span>
-            <span className="broker-name">{item.corretor_nome || 'N/A'}</span>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              className="btn btn-secondary" 
-              onClick={() => onShare(item.id)} 
-              title="Enviar por WhatsApp" 
-              style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Share2 size={16} />
-            </button>
-            <button 
-              className="btn btn-primary" 
-              onClick={() => onNegociar(item.id)}
-            >
-              Negociar
-            </button>
-          </div>
+        {/* Neighborhood Overlay gradient block */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0) 100%)',
+          padding: '40px 16px 16px',
+          color: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          height: '50%'
+        }}>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700, textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>
+            📍 {item.bairro}
+          </span>
         </div>
       </div>
     </div>
