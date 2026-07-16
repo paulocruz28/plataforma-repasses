@@ -27,6 +27,8 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
     let corretorDestinoId: number | null = null;
     let atribuicaoDireta = false;
 
+    let skipRoleta = false;
+
     // 2. Verificar se há indicação direta de corretor (no corpo da requisição ou pelo dono do repasse)
     if (corretor_id) {
       const parsedId = parseInt(corretor_id);
@@ -34,24 +36,33 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
         corretorDestinoId = parsedId;
         atribuicaoDireta = true;
       }
+    } else if (corretor_id === null) {
+      // Se enviado explicitamente como null (ex: criação manual sem corretor), pula a roleta
+      skipRoleta = true;
     }
 
-    if (!corretorDestinoId && repasse_id) {
+    if (!corretorDestinoId && !skipRoleta && repasse_id) {
       const { rows: repasseObj } = await db.query(
         'SELECT corretor_id FROM repasses WHERE id = $1',
         [parseInt(repasse_id)]
       );
-      if (repasseObj.length > 0 && repasseObj[0].corretor_id) {
-        const repasseCorretorId = repasseObj[0].corretor_id;
-        if (corretores.some(c => c.id === repasseCorretorId)) {
-          corretorDestinoId = repasseCorretorId;
-          atribuicaoDireta = true;
+      if (repasseObj.length > 0) {
+        if (repasseObj[0].corretor_id) {
+          const repasseCorretorId = repasseObj[0].corretor_id;
+          if (corretores.some(c => c.id === repasseCorretorId)) {
+            corretorDestinoId = repasseCorretorId;
+            atribuicaoDireta = true;
+          }
+        } else {
+          // O imóvel existe mas não possui corretor responsável.
+          // Forçamos o lead a ficar sem corretor (não executa a roleta).
+          skipRoleta = true;
         }
       }
     }
 
-    // 3. Se não houver atribuição direta, executa a Roleta (Round-Robin)
-    if (!corretorDestinoId) {
+    // 3. Se não houver atribuição direta e não for forçado a pular, executa a Roleta (Round-Robin)
+    if (!corretorDestinoId && !skipRoleta) {
       const { rows: ultimoLead } = await db.query(
         'SELECT corretor_id FROM leads WHERE corretor_id IS NOT NULL ORDER BY id DESC LIMIT 1'
       );

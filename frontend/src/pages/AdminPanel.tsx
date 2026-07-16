@@ -110,6 +110,7 @@ export const AdminPanel: React.FC = () => {
   const [newLeadTelefone, setNewLeadTelefone] = useState('');
   const [newLeadEmail, setNewLeadEmail] = useState('');
   const [newLeadRepasseId, setNewLeadRepasseId] = useState('');
+  const [newLeadCorretorId, setNewLeadCorretorId] = useState('');
 
   // Estados para Edição de Lead (Admin)
   const [showEditLeadModal, setShowEditLeadModal] = useState(false);
@@ -310,7 +311,7 @@ export const AdminPanel: React.FC = () => {
         telefone: newLeadTelefone,
         email: newLeadEmail || undefined,
         repasse_id: newLeadRepasseId ? parseInt(newLeadRepasseId) : undefined,
-        corretor_id: currentUser?.id
+        corretor_id: newLeadCorretorId ? parseInt(newLeadCorretorId) : null
       });
       showToast('Lead manual criado com sucesso!', 'success');
       setShowAddLeadModal(false);
@@ -318,6 +319,7 @@ export const AdminPanel: React.FC = () => {
       setNewLeadTelefone('');
       setNewLeadEmail('');
       setNewLeadRepasseId('');
+      setNewLeadCorretorId('');
       loadCRMData();
     } catch (err: any) {
       console.error(err);
@@ -3089,6 +3091,20 @@ export const AdminPanel: React.FC = () => {
                       <option key={r.id} value={r.id}>
                         [{r.bairro}] {r.titulo} (Chave: {formatCurrency(parseFloat(r.valor_chave.toString()))})
                       </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Corretor Responsável (Opcional)</label>
+                  <select 
+                    className="form-control"
+                    value={newLeadCorretorId}
+                    onChange={(e) => setNewLeadCorretorId(e.target.value)}
+                  >
+                    <option value="">Nenhum (Deixar sem corretor / Sem roleta)</option>
+                    {corretores.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome}</option>
                     ))}
                   </select>
                 </div>
