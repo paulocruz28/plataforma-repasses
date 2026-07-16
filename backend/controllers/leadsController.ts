@@ -422,3 +422,52 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     res.status(500).json({ error: 'Erro ao processar métricas do dashboard.' });
   }
 };
+
+// Atualizar informações completas do lead (Administração e Direcionamento)
+export const updateLead = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { nome, telefone, email, repasse_id, corretor_id, status, observacoes } = req.body;
+
+    if (!nome || !telefone) {
+      return res.status(400).json({ error: 'Nome e Telefone são obrigatórios.' });
+    }
+
+    const leadCheck = await db.query('SELECT * FROM leads WHERE id = $1', [id]);
+    if (leadCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Lead não encontrado.' });
+    }
+
+    const queryText = `
+      UPDATE leads 
+      SET nome = $1, telefone = $2, email = $3, repasse_id = $4, corretor_id = $5, status = $6, observacoes = $7
+      WHERE id = $8
+      RETURNING *
+    `;
+    const params = [
+      nome,
+      telefone,
+      email || null,
+      repasse_id ? parseInt(repasse_id) : null,
+      corretor_id ? parseInt(corretor_id) : null,
+      status || 'Novo',
+      observacoes || null,
+      id
+    ];
+
+    const { rows } = await db.query(queryText, params);
+    
+    // Se o lead foi marcado como 'Vendido' e está associado a um repasse, marca o repasse como 'Vendido' também
+    if (status === 'Vendido' && repasse_id) {
+      await db.query(
+        "UPDATE repasses SET status = 'Vendido' WHERE id = $1",
+        [repasse_id]
+      );
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Erro ao atualizar lead:', err);
+    res.status(500).json({ error: 'Erro ao atualizar lead.' });
+  }
+};

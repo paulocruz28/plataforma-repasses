@@ -111,6 +111,18 @@ export const AdminPanel: React.FC = () => {
   const [newLeadEmail, setNewLeadEmail] = useState('');
   const [newLeadRepasseId, setNewLeadRepasseId] = useState('');
 
+  // Estados para Edição de Lead (Admin)
+  const [showEditLeadModal, setShowEditLeadModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [editLeadNome, setEditLeadNome] = useState('');
+  const [editLeadTelefone, setEditLeadTelefone] = useState('');
+  const [editLeadEmail, setEditLeadEmail] = useState('');
+  const [editLeadRepasseId, setEditLeadRepasseId] = useState('');
+  const [editLeadCorretorId, setEditLeadCorretorId] = useState('');
+  const [editLeadObservacoes, setEditLeadObservacoes] = useState('');
+  const [editLeadStatus, setEditLeadStatus] = useState('');
+  const [savingLeadEdit, setSavingLeadEdit] = useState(false);
+
   // Estados para as Configurações (Comissões)
   const [comissaoCorretorPadrao, setComissaoCorretorPadrao] = useState('5.00');
   const [comissaoGestaoPadrao, setComissaoGestaoPadrao] = useState('1.00');
@@ -313,6 +325,35 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleSaveLeadEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLead) return;
+    if (!editLeadNome || !editLeadTelefone) {
+      showToast('Nome e Telefone são obrigatórios!', 'warning');
+      return;
+    }
+    setSavingLeadEdit(true);
+    try {
+      await api.put(`/leads/${selectedLead.id}`, {
+        nome: editLeadNome,
+        telefone: editLeadTelefone,
+        email: editLeadEmail || null,
+        repasse_id: editLeadRepasseId ? parseInt(editLeadRepasseId) : null,
+        corretor_id: editLeadCorretorId ? parseInt(editLeadCorretorId) : null,
+        status: editLeadStatus,
+        observacoes: editLeadObservacoes || null
+      });
+      showToast('Informações do lead salvas com sucesso!', 'success');
+      setShowEditLeadModal(false);
+      loadCRMData();
+    } catch (err: any) {
+      console.error(err);
+      showToast('Erro ao atualizar informações do lead.', 'danger');
+    } finally {
+      setSavingLeadEdit(false);
+    }
+  };
+
   const loadTeamData = async () => {
     setLoadingTeam(true);
     try {
@@ -462,8 +503,8 @@ export const AdminPanel: React.FC = () => {
   // Salvar Repasse (Criar ou Editar)
   const handleSaveRepasse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repasseTitulo || !repasseBairro || !repasseChave || !repasseSaldo || !repasseCorretor) {
-      showToast('Por favor, preencha todos os campos obrigatórios.', 'warning');
+    if (!repasseTitulo || !repasseBairro || !repasseChave || !repasseSaldo) {
+      showToast('Por favor, preencha todos os campos obrigatórios (Título, Bairro, Valor da Chave e Saldo Devedor).', 'warning');
       return;
     }
 
@@ -482,7 +523,7 @@ export const AdminPanel: React.FC = () => {
         descricao: repasseDescricao,
         status: repasseStatus,
         comissao_pct: repasseComissaoPct ? parseFloat(repasseComissaoPct) : 5.00,
-        corretor_id: parseInt(repasseCorretor)
+        corretor_id: repasseCorretor ? parseInt(repasseCorretor) : null
       };
 
       if (editingRepasseId) {
@@ -1491,9 +1532,30 @@ export const AdminPanel: React.FC = () => {
                               key={lead.id} 
                               className={`lead-card-premium ${isSold ? 'lead-card-sold-premium' : ''}`}
                             >
-                              <div className="lead-name-premium">
-                                <span>{lead.nome}</span>
-                                {isSold && <span className="sold-badge-premium">⭐ Vendido</span>}
+                              <div className="lead-name-premium" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                <span style={{ fontWeight: 700 }}>{lead.nome}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {isSold && <span className="sold-badge-premium" style={{ margin: 0 }}>⭐ Vendido</span>}
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedLead(lead);
+                                        setEditLeadNome(lead.nome);
+                                        setEditLeadTelefone(lead.telefone);
+                                        setEditLeadEmail(lead.email || '');
+                                        setEditLeadRepasseId(lead.repasse_id ? lead.repasse_id.toString() : '');
+                                        setEditLeadCorretorId(lead.corretor_id ? lead.corretor_id.toString() : '');
+                                        setEditLeadObservacoes(lead.observacoes || '');
+                                        setEditLeadStatus(lead.status);
+                                        setShowEditLeadModal(true);
+                                      }}
+                                      style={{ background: 'transparent', border: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
+                                      title="Editar informações do cliente e direcionar"
+                                    >
+                                      <Pencil size={14} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                               <div className="lead-contact-premium">
                                 <span>📞</span> {lead.telefone}
@@ -1927,14 +1989,13 @@ export const AdminPanel: React.FC = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Corretor Responsável *</label>
+                      <label>Corretor Responsável</label>
                       <select 
                         className="form-control" 
-                        required 
                         value={repasseCorretor} 
                         onChange={(e) => setRepasseCorretor(e.target.value)}
                       >
-                        <option value="">Selecione o Corretor Responsável</option>
+                        <option value="">Nenhum (Sem corretor responsável)</option>
                         {corretores.map(c => (
                           <option key={c.id} value={c.id}>{c.nome}</option>
                         ))}
@@ -2996,6 +3057,139 @@ export const AdminPanel: React.FC = () => {
                     style={{ minWidth: '120px' }}
                   >
                     Criar Lead
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showEditLeadModal && selectedLead && (
+          <div className="modal-backdrop active">
+            <div className="modal-content glass-panel" style={{ maxWidth: '600px', width: '90%', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Editar Cliente / Direcionar Lead</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '2px' }}>
+                    Altere as informações cadastrais e direcione o lead para a sua equipe.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowEditLeadModal(false)}
+                  style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveLeadEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Nome do Cliente *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={editLeadNome} 
+                      onChange={(e) => setEditLeadNome(e.target.value)} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Telefone / WhatsApp *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={editLeadTelefone} 
+                      onChange={(e) => setEditLeadTelefone(formatPhone(e.target.value))} 
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>E-mail</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    value={editLeadEmail} 
+                    onChange={(e) => setEditLeadEmail(e.target.value)} 
+                  />
+                </div>
+
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Direcionar para Corretor</label>
+                    <select 
+                      className="form-control"
+                      value={editLeadCorretorId}
+                      onChange={(e) => setEditLeadCorretorId(e.target.value)}
+                    >
+                      <option value="">Nenhum (Roleta de Leads)</option>
+                      {corretores.map(c => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Imóvel de Interesse (Repasse)</label>
+                    <select 
+                      className="form-control"
+                      value={editLeadRepasseId}
+                      onChange={(e) => setEditLeadRepasseId(e.target.value)}
+                    >
+                      <option value="">Interesse Geral / Sem Repasse Específico</option>
+                      {repasses.map(r => (
+                        <option key={r.id} value={r.id}>[{r.bairro}] {r.titulo}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Status do Lead</label>
+                    <select 
+                      className="form-control"
+                      value={editLeadStatus}
+                      onChange={(e) => setEditLeadStatus(e.target.value)}
+                    >
+                      <option value="Novo">Novo</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Aprovado">Aprovado</option>
+                      <option value="Vendido">Vendido</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Observações / Informações Adicionais</label>
+                  <textarea 
+                    className="form-control" 
+                    rows={4}
+                    value={editLeadObservacoes}
+                    onChange={(e) => setEditLeadObservacoes(e.target.value)}
+                    placeholder="Adicione informações sobre a renda, FGTS, histórico de contatos, etc..."
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '10px' }}>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setShowEditLeadModal(false)}
+                    disabled={savingLeadEdit}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    disabled={savingLeadEdit}
+                    style={{ minWidth: '120px' }}
+                  >
+                    {savingLeadEdit ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </form>

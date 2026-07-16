@@ -31,6 +31,7 @@ export interface Lead {
   corretor_id?: number;
   corretor_nome?: string;
   status: string;
+  observacoes?: string;
   data_criacao?: string;
 }
 

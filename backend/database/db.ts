@@ -75,8 +75,14 @@ export const initDb = async (): Promise<void> => {
         repasse_id INTEGER REFERENCES repasses(id) ON DELETE SET NULL,
         corretor_id INTEGER REFERENCES corretores(id) ON DELETE SET NULL,
         status VARCHAR(50) DEFAULT 'Novo',
+        observacoes TEXT,
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Migração automática e resiliente para adicionar observacoes se a tabela já existir
+    await client.query(`
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS observacoes TEXT;
     `);
 
     // 4. Tabela de Configurações do Sistema
@@ -129,8 +135,9 @@ export const initDb = async (): Promise<void> => {
       await client.query(`
         INSERT INTO corretores (nome, email, telefone, senha_hash, role, nome_exibicao) VALUES 
         ('Rafael Sales', 'rafael@repasses.com', '(85) 99999-1111', $1, 'admin', 'Rafael Sales (RS)'),
-        ('Paloma Ribeiro', 'paloma@repasses.com', '(85) 99999-2222', $1, 'corretor', 'Paloma Ribeiro'),
-        ('Mariana Costa', 'mariana@repasses.com', '(85) 99999-3333', $1, 'corretor', 'Mariana Costa');
+        ('Paloma Eduarda', 'paloma@repasses.com', '(85) 99999-2222', $1, 'corretor', 'Paloma Eduarda'),
+        ('Paulo José Cruz', 'paulo@repasses.com', '(85) 9 8562-9727', $1, 'corretor', 'Paulo José Cruz'),
+        ('Gabriel David do Nascimento', 'gabriel@repasses.com', '(85) 9 8511-6402', $1, 'corretor', 'Gabriel David do Nascimento');
       `, [hash]);
     } else {
       // Se já houver registros, migra Gabriel Souza para Rafael Sales de forma segura
@@ -149,6 +156,34 @@ export const initDb = async (): Promise<void> => {
           UPDATE corretores 
           SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', role = 'admin', senha_hash = $1
           WHERE email = 'gabriel@repasses.com' OR (role = 'admin' AND nome = 'Gabriel Souza');
+        `, [hash]);
+      }
+
+      // Garantir que Paloma, Paulo e Gabriel também existam no banco do Render
+      const palomaExists = await client.query("SELECT id FROM corretores WHERE email = 'paloma@repasses.com'");
+      if (palomaExists.rows.length === 0) {
+        await client.query(`
+          INSERT INTO corretores (nome, email, telefone, senha_hash, role, nome_exibicao)
+          VALUES ('Paloma Eduarda', 'paloma@repasses.com', '(85) 99999-2222', $1, 'corretor', 'Paloma Eduarda');
+        `, [hash]);
+      } else {
+        // Atualiza para Paloma Eduarda caso o nome no banco esteja antigo
+        await client.query("UPDATE corretores SET nome = 'Paloma Eduarda', nome_exibicao = 'Paloma Eduarda' WHERE email = 'paloma@repasses.com'");
+      }
+
+      const pauloExists = await client.query("SELECT id FROM corretores WHERE email = 'paulo@repasses.com'");
+      if (pauloExists.rows.length === 0) {
+        await client.query(`
+          INSERT INTO corretores (nome, email, telefone, senha_hash, role, nome_exibicao)
+          VALUES ('Paulo José Cruz', 'paulo@repasses.com', '(85) 9 8562-9727', $1, 'corretor', 'Paulo José Cruz');
+        `, [hash]);
+      }
+
+      const gabrielExists = await client.query("SELECT id FROM corretores WHERE email = 'gabriel@repasses.com'");
+      if (gabrielExists.rows.length === 0) {
+        await client.query(`
+          INSERT INTO corretores (nome, email, telefone, senha_hash, role, nome_exibicao)
+          VALUES ('Gabriel David do Nascimento', 'gabriel@repasses.com', '(85) 9 8511-6402', $1, 'corretor', 'Gabriel David do Nascimento');
         `, [hash]);
       }
     }

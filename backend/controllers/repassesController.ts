@@ -162,7 +162,7 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
   try {
     const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id } = req.body;
     
-    if (!titulo || !bairro || !valor_chave || !saldo_devedor || !corretor_id) {
+    if (!titulo || !bairro || !valor_chave || !saldo_devedor) {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
     }
 
@@ -183,7 +183,7 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
       imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=500&auto=format&fit=crop&q=60',
       descricao || '',
       comissao_pct ? parseFloat(comissao_pct) : 5.00,
-      parseInt(corretor_id)
+      corretor_id ? parseInt(corretor_id) : null
     ];
 
     const { rows } = await db.query(queryText, params);
@@ -211,7 +211,7 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
     const { id } = req.params;
     const { titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, status, comissao_pct, corretor_id } = req.body;
 
-    if (!titulo || !bairro || !valor_chave || !saldo_devedor || !corretor_id) {
+    if (!titulo || !bairro || !valor_chave || !saldo_devedor) {
       return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
     }
 
@@ -240,7 +240,7 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
       descricao || '',
       status || 'Disponível',
       comissao_pct ? parseFloat(comissao_pct) : 5.00,
-      parseInt(corretor_id),
+      corretor_id ? parseInt(corretor_id) : null,
       id
     ];
 
