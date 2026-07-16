@@ -68,6 +68,13 @@ const getRepasses = async (req, res) => {
                 }
             }
         }
+        let acessoPortfolioGeral = true;
+        if (isCorretor && loggedCorretorId !== null) {
+            const permRes = await db.query('SELECT acesso_portfolio_geral FROM permissoes_corretor WHERE corretor_id = $1', [loggedCorretorId]);
+            if (permRes.rows.length > 0) {
+                acessoPortfolioGeral = permRes.rows[0].acesso_portfolio_geral;
+            }
+        }
         let queryText = `
       SELECT r.*, c.nome as corretor_nome, c.telefone as corretor_telefone 
       FROM repasses r
@@ -80,8 +87,8 @@ const getRepasses = async (req, res) => {
         if (!isAdmin && !isCorretor) {
             queryText += ` AND r.status = 'Disponível' `;
         }
-        // Se for corretor, filtrar apenas os imóveis dele
-        if (isCorretor && loggedCorretorId !== null) {
+        // Se for corretor e não tiver a permissão de ver tudo, filtra apenas os imóveis dele
+        if (isCorretor && loggedCorretorId !== null && !acessoPortfolioGeral) {
             queryText += ` AND r.corretor_id = $${paramIndex} `;
             params.push(loggedCorretorId);
             paramIndex++;

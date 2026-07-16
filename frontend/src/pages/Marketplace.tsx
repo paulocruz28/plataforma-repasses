@@ -15,6 +15,10 @@ const formatPhone = (value: string) => {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7)}`;
 };
 
+const formatCurrency = (val: number) => {
+  return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
 const NEIGHBORHOODS = [
   'Açude, Caucaia (CE)',
   'Alto do Garrote, Caucaia (CE)',
@@ -90,6 +94,18 @@ export const Marketplace: React.FC = () => {
   const [pretensao, setPretensao] = useState<'comprar' | 'alugar'>('comprar');
   const [activeTab, setActiveTab] = useState<'casas' | 'condominio' | 'apartamentos' | 'alugar' | 'todos'>('todos');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+
+  // Estados da Área do Cliente
+  const [simValChave, setSimValChave] = useState(150000);
+  const [simSaldoDev, setSimSaldoDev] = useState(300000);
+  const [simEntrada, setSimEntrada] = useState(80000);
+  const [simTroca, setSimTroca] = useState(30000);
+  const [simPrazo, setSimPrazo] = useState(240);
+  const [simJuros] = useState(9.5); // % a.a.
+  const [prefBairro, setPrefBairro] = useState('');
+  const [prefQuartos, setPrefQuartos] = useState('');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [searched, setSearched] = useState(false);
 
   // Controle de Modais Customizados
   const [modalActive, setModalActive] = useState<'none' | 'encomendar' | 'financiamento' | 'cadastrar' | 'avaliar'>('none');
@@ -462,10 +478,199 @@ export const Marketplace: React.FC = () => {
     return true;
   });
 
+  // Cálculos do simulador do cliente
+  const simVgv = simValChave + simSaldoDev;
+  const simItbi = simVgv * 0.03;
+  const simRegistro = 4500;
+  const simTaxaConst = simVgv * 0.01;
+  const simAdicionais = simItbi + simRegistro + simTaxaConst;
+  const simSaldoFinanciado = simSaldoDev;
+  const simAmortizacao = simSaldoFinanciado / simPrazo;
+  const simTaxaJurosMensal = (simJuros / 100) / 12;
+  const simJurosInicial = simSaldoFinanciado * simTaxaJurosMensal;
+  const simPrimeiraParcela = simAmortizacao + simJurosInicial;
+
+  // Filtro de matchmaking do cliente
+  const clientMatches = repasses.filter(r => {
+    if (prefBairro && r.bairro.toLowerCase() !== prefBairro.toLowerCase()) return false;
+    if (prefQuartos && r.quartos < parseInt(prefQuartos)) return false;
+    return r.status === 'Disponível';
+  }).slice(0, 3);
+
+  const clientTabActive = searchParams.get('tab') === 'cliente';
+
   return (
     <div>
-      {/* Banner de Portfólio de Corretor se selecionado */}
-      {corretorParam && (
+      {clientTabActive ? (
+        <section style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px', minHeight: '60vh' }}>
+          {/* Header do Espaço do Cliente */}
+          <div className="glass-panel" style={{ padding: '30px', borderRadius: '18px', background: 'var(--panel-bg)', border: '1px solid var(--border-color)', marginBottom: '30px' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>✨ Espaço Interativo do Cliente</h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginTop: '6px' }}>
+              Simule custos de transferência, encontre imóveis compatíveis e rastreie propostas em tempo real.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px', alignItems: 'start' }}>
+            
+            {/* Simulador Avançado */}
+            <div className="glass-panel" style={{ padding: '24px', borderRadius: '18px', border: '1px solid var(--border-color)', background: 'var(--panel-bg)' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>📊 Simulador de Repasse Completo</h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>Valor da Chave (Ágio): {formatCurrency(simValChave)}</label>
+                  <input type="range" min="30000" max="800000" step="5000" value={simValChave} onChange={(e) => setSimValChave(parseInt(e.target.value))} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>Saldo Devedor do Banco: {formatCurrency(simSaldoDev)}</label>
+                  <input type="range" min="50000" max="1500000" step="10000" value={simSaldoDev} onChange={(e) => setSimSaldoDev(parseInt(e.target.value))} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>Entrada em Dinheiro: {formatCurrency(simEntrada)}</label>
+                  <input type="range" min="10000" max={simValChave} step="5000" value={simEntrada} onChange={(e) => setSimEntrada(parseInt(e.target.value))} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>Carros / Bens na Troca: {formatCurrency(simTroca)}</label>
+                  <input type="range" min="0" max={simValChave - simEntrada} step="5000" value={simTroca} onChange={(e) => setSimTroca(parseInt(e.target.value))} style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>Prazo do Financiamento: {simPrazo} meses</label>
+                  <input type="range" min="60" max="360" step="12" value={simPrazo} onChange={(e) => setSimPrazo(parseInt(e.target.value))} style={{ width: '100%' }} />
+                </div>
+
+                <div style={{ background: 'rgba(0,0,0,0.02)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span>VGV Geral do Imóvel:</span>
+                    <strong>{formatCurrency(simVgv)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span>ITBI e Custos de Cartório:</span>
+                    <span>{formatCurrency(simAdicionais)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                    <span>Saldo Restante da Chave (Ágio):</span>
+                    <strong style={{ color: 'var(--primary)' }}>{formatCurrency(simValChave - simEntrada - simTroca)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', borderTop: '1px dashed var(--border-color)', paddingTop: '8px', fontWeight: 700 }}>
+                    <span>Primeira Parcela Est. (SAC):</span>
+                    <strong style={{ color: 'var(--success)' }}>{formatCurrency(simPrimeiraParcela)}/mês</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Matchmaking Inteligente & Rastreador */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+              
+              {/* Matchmaking */}
+              <div className="glass-panel" style={{ padding: '24px', borderRadius: '18px', border: '1px solid var(--border-color)', background: 'var(--panel-bg)' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-primary)' }}>✨ Encontre seu Match de Repasse</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+                  Escolha suas preferências e encontre imóveis ideais instantaneamente.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <select className="form-control" value={prefBairro} onChange={(e) => setPrefBairro(e.target.value)} style={{ flex: 1, fontSize: '0.85rem' }}>
+                      <option value="">Qualquer Bairro</option>
+                      <option value="Aldeota">Aldeota</option>
+                      <option value="Cocó">Cocó</option>
+                      <option value="Meireles">Meireles</option>
+                      <option value="Eusébio">Eusébio</option>
+                      <option value="Cumbuco">Cumbuco</option>
+                      <option value="Passaré">Passaré</option>
+                      <option value="Fátima">Fátima</option>
+                    </select>
+                    <select className="form-control" value={prefQuartos} onChange={(e) => setPrefQuartos(e.target.value)} style={{ flex: 1, fontSize: '0.85rem' }}>
+                      <option value="">Qualquer Quartos</option>
+                      <option value="1">1+ Quartos</option>
+                      <option value="2">2+ Quartos</option>
+                      <option value="3">3+ Quartos</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700 }}>Matches Recomendados ({clientMatches.length})</h4>
+                    {clientMatches.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center', padding: '10px' }}>Nenhum imóvel disponível para estas preferências.</div>
+                    ) : (
+                      clientMatches.map(r => (
+                        <div 
+                          key={r.id} 
+                          onClick={() => setSelectedDetailsRepasse(r)}
+                          style={{ display: 'flex', gap: '12px', padding: '10px', background: 'rgba(0,0,0,0.015)', border: '1px solid var(--border-color)', borderRadius: '10px', cursor: 'pointer' }}
+                        >
+                          <img src={r.imagem_url} alt={r.titulo} style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover' }} />
+                          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{r.titulo}</strong>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Chave: {formatCurrency(parseFloat(r.valor_chave.toString()))}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Rastreador de Propostas */}
+              <div className="glass-panel" style={{ padding: '24px', borderRadius: '18px', border: '1px solid var(--border-color)', background: 'var(--panel-bg)' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-primary)' }}>🔍 Rastreador de Propostas</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '16px' }}>
+                  Consulte a fase atual de sua proposta de repasse em tempo real.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input 
+                      type="tel" 
+                      className="form-control" 
+                      placeholder="Digite seu WhatsApp de cadastro" 
+                      value={searchPhone} 
+                      onChange={(e) => setSearchPhone(formatPhone(e.target.value))}
+                      style={{ flex: 1, fontSize: '0.88rem' }}
+                    />
+                    <button className="btn btn-primary" onClick={() => setSearched(true)} style={{ padding: '0 20px' }}>Buscar</button>
+                  </div>
+
+                  {searched && (
+                    <div style={{ marginTop: '10px' }}>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '10px' }}>Status da Proposta:</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '2px solid var(--primary)', paddingLeft: '14px', marginLeft: '6px' }}>
+                        <div style={{ position: 'relative' }}>
+                          <span style={{ position: 'absolute', left: '-19px', top: '1px', background: 'var(--primary)', color: '#fff', borderRadius: '50%', width: '8px', height: '8px' }}></span>
+                          <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>📝 Proposta Recebida</strong>
+                          <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Fase concluída com sucesso.</span>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <span style={{ position: 'absolute', left: '-19px', top: '1px', background: 'var(--primary)', color: '#fff', borderRadius: '50%', width: '8px', height: '8px' }}></span>
+                          <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>🔍 Análise de Crédito</strong>
+                          <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Documentação enviada para análise da Caixa Econômica Federal.</span>
+                        </div>
+                        <div style={{ position: 'relative', opacity: 0.5 }}>
+                          <span style={{ position: 'absolute', left: '-19px', top: '1px', background: 'var(--text-muted)', color: '#fff', borderRadius: '50%', width: '8px', height: '8px' }}></span>
+                          <strong style={{ fontSize: '0.82rem' }}>⚖️ Validação Construtora</strong>
+                          <span style={{ display: 'block', fontSize: '0.7rem' }}>Aguardando anuência de transferência de direitos da construtora.</span>
+                        </div>
+                        <div style={{ position: 'relative', opacity: 0.5 }}>
+                          <span style={{ position: 'absolute', left: '-19px', top: '1px', background: 'var(--text-muted)', color: '#fff', borderRadius: '50%', width: '8px', height: '8px' }}></span>
+                          <strong style={{ fontSize: '0.82rem' }}>✍️ Assinatura do Contrato</strong>
+                          <span style={{ display: 'block', fontSize: '0.7rem' }}>Emissão de minutas e coleta de assinaturas digitais.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+      ) : (
+        <>
+          {/* Banner de Portfólio de Corretor se selecionado */}
+          {corretorParam && (
         <section className="portfolio-header glass-panel" style={{ margin: '40px auto 0', padding: '30px 40px', maxWidth: '1200px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="portfolio-info">
             <p style={{ color: 'var(--text-secondary)' }}>Você está visualizando o portfólio exclusivo de:</p>
@@ -788,6 +993,8 @@ export const Marketplace: React.FC = () => {
             </div>
           </div>
         </section>
+      )}
+        </>
       )}
 
       {/* Botão de WhatsApp Flutuante */}
@@ -1725,25 +1932,74 @@ export const Marketplace: React.FC = () => {
                         {formatCurrency(selectedDetailsRepasse.valor_chave)}
                       </h1>
                     </div>
-                    <button 
-                      type="button" 
-                      onClick={() => handleShare(selectedDetailsRepasse.id)} 
-                      style={{ 
-                        padding: '10px 16px', 
-                        fontSize: '0.85rem', 
-                        fontWeight: 700,
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px', 
-                        cursor: 'pointer', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '8px', 
-                        background: 'transparent',
-                        color: 'var(--text-primary)'
-                      }}
-                    >
-                      🟢 Compartilhar WhatsApp
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => handleShare(selectedDetailsRepasse.id)} 
+                        style={{ 
+                          padding: '10px 16px', 
+                          fontSize: '0.85rem', 
+                          fontWeight: 700,
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          cursor: 'pointer', 
+                          border: '1px solid var(--border-color)', 
+                          borderRadius: '8px', 
+                          background: 'transparent',
+                          color: 'var(--text-primary)'
+                        }}
+                      >
+                        🟢 WhatsApp
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => window.print()} 
+                        style={{ 
+                          padding: '10px 16px', 
+                          fontSize: '0.85rem', 
+                          fontWeight: 700,
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          cursor: 'pointer', 
+                          border: '1px solid var(--border-color)', 
+                          borderRadius: '8px', 
+                          background: 'transparent',
+                          color: 'var(--text-primary)'
+                        }}
+                      >
+                        🖨️ PDF / A4
+                      </button>
+                      <style dangerouslySetInnerHTML={{ __html: `
+                        @media print {
+                          body * {
+                            visibility: hidden !important;
+                          }
+                          .modal-backdrop, .modal-backdrop * {
+                            visibility: visible !important;
+                          }
+                          .modal-backdrop {
+                            position: absolute !important;
+                            left: 0 !important;
+                            top: 0 !important;
+                            width: 100% !important;
+                            background: #ffffff !important;
+                            padding: 0 !important;
+                          }
+                          .modal-content {
+                            border: none !important;
+                            box-shadow: none !important;
+                            background: #ffffff !important;
+                            width: 100% !important;
+                            margin: 0 !important;
+                          }
+                          button, select, form {
+                            display: none !important;
+                          }
+                        }
+                      `}} />
+                    </div>
                   </div>
 
                   {/* Grid de Especificações Físicas */}
@@ -1827,6 +2083,71 @@ export const Marketplace: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '15px 0' }} />
+
+                  {/* Simulador Financeiro de Transferência */}
+                  <div style={{ background: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '24px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📊</span> Simulador de Transferência e Custos de Repasse
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '16px' }}>
+                      Calcule os custos adicionais estimados para realizar a cessão de direitos e registro deste imóvel.
+                    </p>
+                    
+                    {(() => {
+                      const vChave = parseFloat(selectedDetailsRepasse.valor_chave.toString()) || 0;
+                      const sDevedor = parseFloat(selectedDetailsRepasse.saldo_devedor.toString()) || 0;
+                      const vgv = vChave + sDevedor;
+                      const itbi = vgv * 0.03;
+                      const registro = 4500;
+                      const taxaConstrutora = vgv * 0.01;
+                      const custoTotalAdicional = itbi + registro + taxaConstrutora;
+                      const capitalNecessario = vChave + custoTotalAdicional;
+
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                              <span>Valor da Chave (Ágio):</span>
+                              <strong>{formatCurrency(vChave)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                              <span>Saldo Devedor Caixa:</span>
+                              <strong>{formatCurrency(sDevedor)}</strong>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', borderTop: '1px solid var(--border-color)', paddingTop: '6px' }}>
+                              <span>VGV Geral:</span>
+                              <strong>{formatCurrency(vgv)}</strong>
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(0,0,0,0.02)', padding: '14px', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                              <span>ITBI Est. (3%):</span>
+                              <span>{formatCurrency(itbi)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                              <span>Registro Cartório Est.:</span>
+                              <span>{formatCurrency(registro)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                              <span>Taxa Construtora (1%):</span>
+                              <span>{formatCurrency(taxaConstrutora)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', borderTop: '1px dashed var(--border-color)', paddingTop: '8px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <span>Total Taxas Extras:</span>
+                              <span>{formatCurrency(custoTotalAdicional)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.92rem', fontWeight: 800, color: '#f97316', marginTop: '4px' }}>
+                              <span>Entrada + Taxas Extras:</span>
+                              <span>{formatCurrency(capitalNecessario)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                 </div>

@@ -11,9 +11,13 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
       return res.status(400).json({ error: 'Nome e telefone são obrigatórios.' });
     }
 
-    // 1. Obter todos os corretores ativos
+    // 1. Obter todos os corretores ativos que participam da roleta de leads
     const { rows: corretores } = await db.query(
-      'SELECT id, nome FROM corretores WHERE ativo = true ORDER BY id'
+      `SELECT c.id, c.nome 
+       FROM corretores c
+       LEFT JOIN permissoes_corretor p ON c.id = p.corretor_id
+       WHERE c.ativo = true AND (c.role = 'admin' OR p.participacao_roleta IS NULL OR p.participacao_roleta = true)
+       ORDER BY c.id`
     );
 
     if (corretores.length === 0) {

@@ -52,24 +52,36 @@ const login = async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM corretores WHERE email = $1 AND ativo = TRUE', [email.toLowerCase().trim()]);
         if (result.rows.length === 0) {
+            console.log(`>>> [AUTH] Login falhou: email não encontrado ou inativo: "${email}"`);
             res.status(400).send('E-mail ou senha incorretos.');
             return;
         }
         const corretor = result.rows[0];
         // Verificar se o corretor possui senha_hash
         if (!corretor.senha_hash) {
+            console.log(`>>> [AUTH] Login falhou: corretor sem senha_hash: "${email}"`);
             res.status(400).send('Corretor não possui senha configurada. Entre em contato com a administração.');
             return;
         }
         // Comparar senha
         const isMatch = await bcryptjs_1.default.compare(senha, corretor.senha_hash);
         if (!isMatch) {
+            console.log(`>>> [AUTH] Login falhou: senha incorreta para: "${email}". Comprimento recebido: ${senha.length}`);
             res.status(400).send('E-mail ou senha incorretos.');
             return;
         }
         // Gerar Token JWT
         const token = jsonwebtoken_1.default.sign({ id: corretor.id, email: corretor.email, nome: corretor.nome, role: corretor.role || 'corretor' }, JWT_SECRET, { expiresIn: '7d' } // Expira em 7 dias
         );
+        const permResult = await db.query('SELECT * FROM permissoes_corretor WHERE corretor_id = $1', [corretor.id]);
+        const permissoes = permResult.rows.length > 0 ? permResult.rows[0] : {
+            acesso_portfolio_geral: true,
+            criacao_leads_manuais: true,
+            edicao_comissao_captacao: false,
+            visualizacao_margem_imobiliaria: false,
+            exportacao_dossies: true,
+            participacao_roleta: true
+        };
         res.json({
             token,
             corretor: {
@@ -77,7 +89,8 @@ const login = async (req, res) => {
                 nome: corretor.nome,
                 email: corretor.email,
                 telefone: corretor.telefone,
-                role: corretor.role || 'corretor'
+                role: corretor.role || 'corretor',
+                permissoes
             }
         });
     }
@@ -125,14 +138,41 @@ const register = async (req, res) => {
     }
 };
 exports.register = register;
-// Obter dados do usuário logado
+// Obter dados do usuário logado com as permissões atualizadas
 const me = async (req, res) => {
     const authReq = req;
     if (!authReq.user) {
         res.status(401).send('Não autorizado.');
         return;
     }
-    res.json({ corretor: authReq.user });
+    try {
+        const corretorId = authReq.user.id;
+        const result = await db.query('SELECT id, nome, email, telefone, role, nome_exibicao, foto_url FROM corretores WHERE id = $1 AND ativo = TRUE', [corretorId]);
+        if (result.rows.length === 0) {
+            res.status(404).send('Usuário não encontrado ou inativo.');
+            return;
+        }
+        const corretor = result.rows[0];
+        const permResult = await db.query('SELECT * FROM permissoes_corretor WHERE corretor_id = $1', [corretor.id]);
+        const permissoes = permResult.rows.length > 0 ? permResult.rows[0] : {
+            acesso_portfolio_geral: true,
+            criacao_leads_manuais: true,
+            edicao_comissao_captacao: false,
+            visualizacao_margem_imobiliaria: false,
+            exportacao_dossies: true,
+            participacao_roleta: true
+        };
+        res.json({
+            corretor: {
+                ...corretor,
+                permissoes
+            }
+        });
+    }
+    catch (err) {
+        console.error('>>> [AUTH] Erro no endpoint me:', err);
+        res.status(500).send('Erro interno do servidor.');
+    }
 };
 exports.me = me;
 // Atualizar Perfil do Corretor

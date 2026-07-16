@@ -110,6 +110,8 @@ app.post('/api/admin/team', authMiddleware_1.authMiddleware, adminController.cre
 app.put('/api/admin/team/:id', authMiddleware_1.authMiddleware, adminController.updateTeamMember);
 app.get('/api/admin/settings', authMiddleware_1.authMiddleware, adminController.getSettings);
 app.put('/api/admin/settings', authMiddleware_1.authMiddleware, adminController.updateSettings);
+app.get('/api/admin/permissions/:id', authMiddleware_1.authMiddleware, adminController.getBrokerPermissions);
+app.put('/api/admin/permissions/:id', authMiddleware_1.authMiddleware, adminController.updateBrokerPermissions);
 // Contratos e Automação Jurídica
 app.post('/api/contracts/generate', authMiddleware_1.authMiddleware, contractsController.generateContract);
 app.post('/api/contracts/verify-certificates', authMiddleware_1.authMiddleware, contractsController.verifyCertificates);

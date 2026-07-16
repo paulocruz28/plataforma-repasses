@@ -84,6 +84,18 @@ const initDb = async () => {
         valor VARCHAR(255) NOT NULL
       );
     `);
+        // 5. Tabela de Permissões de Corretores
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS permissoes_corretor (
+        corretor_id INTEGER PRIMARY KEY REFERENCES corretores(id) ON DELETE CASCADE,
+        acesso_portfolio_geral BOOLEAN DEFAULT TRUE,
+        criacao_leads_manuais BOOLEAN DEFAULT TRUE,
+        edicao_comissao_captacao BOOLEAN DEFAULT FALSE,
+        visualizacao_margem_imobiliaria BOOLEAN DEFAULT FALSE,
+        exportacao_dossies BOOLEAN DEFAULT TRUE,
+        participacao_roleta BOOLEAN DEFAULT TRUE
+      );
+    `);
         console.log('>>> [DB] Tabelas verificadas/criadas com sucesso.');
         // 5. Semeadura de Configurações Padrão
         const configuracoesCount = await client.query('SELECT COUNT(*) FROM configuracoes');
@@ -114,13 +126,32 @@ const initDb = async () => {
       `, [hash]);
         }
         else {
-            // Se já houver registros, migra Gabriel Souza para Rafael Sales e garante a senha Teste@4321@
-            await client.query(`
-        UPDATE corretores 
-        SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
-        WHERE email = 'gabriel@repasses.com' OR (role = 'admin' AND nome = 'Gabriel Souza');
-      `, [hash]);
+            // Se já houver registros, migra Gabriel Souza para Rafael Sales de forma segura
+            const rafaelExists = await client.query("SELECT id FROM corretores WHERE email = 'rafael@repasses.com'");
+            if (rafaelExists.rows.length > 0) {
+                // Já existe o registro com rafael@repasses.com, exclui gabriel se existir para evitar conflitos
+                await client.query("DELETE FROM corretores WHERE email = 'gabriel@repasses.com' OR (nome = 'Gabriel Souza' AND role = 'admin')");
+                await client.query(`
+          UPDATE corretores 
+          SET nome = 'Rafael Sales', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
+          WHERE email = 'rafael@repasses.com';
+        `, [hash]);
+            }
+            else {
+                // Não existe rafael@repasses.com, atualiza gabriel@repasses.com para rafael@repasses.com
+                await client.query(`
+          UPDATE corretores 
+          SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
+          WHERE email = 'gabriel@repasses.com' OR (role = 'admin' AND nome = 'Gabriel Souza');
+        `, [hash]);
+            }
         }
+        // Garantir que todos os corretores tenham uma linha correspondente na tabela de permissões (semeadura automática)
+        await client.query(`
+      INSERT INTO permissoes_corretor (corretor_id)
+      SELECT id FROM corretores
+      ON CONFLICT (corretor_id) DO NOTHING;
+    `);
         const repassesCount = await client.query('SELECT COUNT(*) FROM repasses');
         if (parseInt(repassesCount.rows[0].count) === 0) {
             console.log('>>> [DB] Inserindo repasses de exemplo...');

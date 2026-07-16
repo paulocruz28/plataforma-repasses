@@ -49,6 +49,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       { expiresIn: '7d' } // Expira em 7 dias
     );
 
+    const permResult = await db.query('SELECT * FROM permissoes_corretor WHERE corretor_id = $1', [corretor.id]);
+    const permissoes = permResult.rows.length > 0 ? permResult.rows[0] : {
+      acesso_portfolio_geral: true,
+      criacao_leads_manuais: true,
+      edicao_comissao_captacao: false,
+      visualizacao_margem_imobiliaria: false,
+      exportacao_dossies: true,
+      participacao_roleta: true
+    };
+
     res.json({
       token,
       corretor: {
@@ -56,7 +66,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         nome: corretor.nome,
         email: corretor.email,
         telefone: corretor.telefone,
-        role: corretor.role || 'corretor'
+        role: corretor.role || 'corretor',
+        permissoes
       }
     });
 
@@ -119,14 +130,47 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// Obter dados do usuário logado
+// Obter dados do usuário logado com as permissões atualizadas
 export const me = async (req: Request, res: Response): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.user) {
     res.status(401).send('Não autorizado.');
     return;
   }
-  res.json({ corretor: authReq.user });
+
+  try {
+    const corretorId = authReq.user.id;
+    const result = await db.query(
+      'SELECT id, nome, email, telefone, role, nome_exibicao, foto_url FROM corretores WHERE id = $1 AND ativo = TRUE',
+      [corretorId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).send('Usuário não encontrado ou inativo.');
+      return;
+    }
+
+    const corretor = result.rows[0];
+    const permResult = await db.query('SELECT * FROM permissoes_corretor WHERE corretor_id = $1', [corretor.id]);
+    const permissoes = permResult.rows.length > 0 ? permResult.rows[0] : {
+      acesso_portfolio_geral: true,
+      criacao_leads_manuais: true,
+      edicao_comissao_captacao: false,
+      visualizacao_margem_imobiliaria: false,
+      exportacao_dossies: true,
+      participacao_roleta: true
+    };
+
+    res.json({
+      corretor: {
+        ...corretor,
+        permissoes
+      }
+    });
+  } catch (err) {
+    console.error('>>> [AUTH] Erro no endpoint me:', err);
+    res.status(500).send('Erro interno do servidor.');
+  }
 };
 
 // Atualizar Perfil do Corretor

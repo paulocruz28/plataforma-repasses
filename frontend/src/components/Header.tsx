@@ -8,13 +8,26 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'light');
+  const [theme, setTheme] = useState<string>(() => {
+    const THEME_VERSION = 'v4.0';
+    const savedVersion = localStorage.getItem('theme_version');
+    if (savedVersion !== THEME_VERSION) {
+      localStorage.setItem('theme', 'light');
+      localStorage.setItem('theme_version', THEME_VERSION);
+      return 'light';
+    }
+    return localStorage.getItem('theme') || 'light';
+  });
   const [corretor, setCorretor] = useState<{ id: number; nome: string; nome_exibicao?: string; foto_url?: string; role?: string } | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   // Monitorar se o corretor está logado a cada mudança de rota
   useEffect(() => {
@@ -30,9 +43,7 @@ export const Header: React.FC = () => {
     }
   }, [location]);
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -72,10 +83,10 @@ export const Header: React.FC = () => {
       <nav className="nav-links" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
         <NavLink 
           to="/" 
-          className={({ isActive }) => isActive ? 'active' : ''} 
+          className={({ isActive }) => isActive && !location.search.includes('tab=cliente') ? 'active' : ''} 
           style={({ isActive }) => ({
-            color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-            fontWeight: isActive ? 600 : 500,
+            color: isActive && !location.search.includes('tab=cliente') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: isActive && !location.search.includes('tab=cliente') ? 600 : 500,
             textDecoration: 'none',
             display: 'flex',
             alignItems: 'center',
@@ -84,6 +95,21 @@ export const Header: React.FC = () => {
         >
           <Home size={18} />
           Vitrine de Imóveis
+        </NavLink>
+
+        <NavLink 
+          to="/?tab=cliente" 
+          className={location.search.includes('tab=cliente') ? 'active' : ''} 
+          style={{
+            color: location.search.includes('tab=cliente') ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: location.search.includes('tab=cliente') ? 600 : 500,
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          ✨ Área do Cliente
         </NavLink>
 
         {corretor ? (

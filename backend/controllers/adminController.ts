@@ -50,7 +50,13 @@ export const createTeamMember = async (req: Request, res: Response): Promise<any
       [nome.trim(), email.toLowerCase().trim(), telefone || null, hash, role || 'corretor']
     );
 
-    res.status(201).json(result.rows[0]);
+    const newCorretor = result.rows[0];
+    await db.query(
+      `INSERT INTO permissoes_corretor (corretor_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [newCorretor.id]
+    );
+
+    res.status(201).json(newCorretor);
   } catch (err) {
     console.error('Erro ao adicionar membro à equipe:', err);
     res.status(500).json({ error: 'Erro ao adicionar corretor.' });
@@ -151,5 +157,85 @@ export const updateSettings = async (req: Request, res: Response): Promise<any> 
   } catch (err) {
     console.error('Erro ao atualizar configurações:', err);
     res.status(500).json({ error: 'Erro ao atualizar configurações.' });
+  }
+};
+
+// Obter permissões de um corretor
+export const getBrokerPermissions = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const { id } = req.params;
+    const { rows } = await db.query(
+      'SELECT * FROM permissoes_corretor WHERE corretor_id = $1',
+      [id]
+    );
+
+    if (rows.length === 0) {
+      await db.query(
+        'INSERT INTO permissoes_corretor (corretor_id) VALUES ($1) ON CONFLICT DO NOTHING',
+        [id]
+      );
+      const newQuery = await db.query('SELECT * FROM permissoes_corretor WHERE corretor_id = $1', [id]);
+      return res.json(newQuery.rows[0]);
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Erro ao buscar permissões do corretor:', err);
+    res.status(500).json({ error: 'Erro ao buscar permissões.' });
+  }
+};
+
+// Atualizar permissões de um corretor
+export const updateBrokerPermissions = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const { id } = req.params;
+    const {
+      acesso_portfolio_geral,
+      criacao_leads_manuais,
+      edicao_comissao_captacao,
+      visualizacao_margem_imobiliaria,
+      exportacao_dossies,
+      participacao_roleta
+    } = req.body;
+
+    const result = await db.query(
+      `INSERT INTO permissoes_corretor (
+        corretor_id, acesso_portfolio_geral, criacao_leads_manuais, 
+        edicao_comissao_captacao, visualizacao_margem_imobiliaria, 
+        exportacao_dossies, participacao_roleta
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (corretor_id) DO UPDATE SET
+        acesso_portfolio_geral = EXCLUDED.acesso_portfolio_geral,
+        criacao_leads_manuais = EXCLUDED.criacao_leads_manuais,
+        edicao_comissao_captacao = EXCLUDED.edicao_comissao_captacao,
+        visualizacao_margem_imobiliaria = EXCLUDED.visualizacao_margem_imobiliaria,
+        exportacao_dossies = EXCLUDED.exportacao_dossies,
+        participacao_roleta = EXCLUDED.participacao_roleta
+      RETURNING *`,
+      [
+        id,
+        acesso_portfolio_geral !== false,
+        criacao_leads_manuais !== false,
+        edicao_comissao_captacao === true,
+        visualizacao_margem_imobiliaria === true,
+        exportacao_dossies !== false,
+        participacao_roleta !== false
+      ]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Erro ao atualizar permissões do corretor:', err);
+    res.status(500).json({ error: 'Erro ao atualizar permissões.' });
   }
 };
