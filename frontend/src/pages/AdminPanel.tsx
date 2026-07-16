@@ -354,6 +354,26 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handleClaimLead = async (lead: Lead) => {
+    if (!currentUser) return;
+    try {
+      await api.put(`/leads/${lead.id}`, {
+        nome: lead.nome,
+        telefone: lead.telefone,
+        email: lead.email || null,
+        repasse_id: lead.repasse_id || null,
+        corretor_id: currentUser.id,
+        status: lead.status,
+        observacoes: lead.observacoes || null
+      });
+      showToast('Atendimento assumido com sucesso! O lead agora está no seu painel.', 'success');
+      loadCRMData();
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao assumir o lead.', 'danger');
+    }
+  };
+
   const loadTeamData = async () => {
     setLoadingTeam(true);
     try {
@@ -1566,21 +1586,51 @@ export const AdminPanel: React.FC = () => {
                                   {lead.repasse_titulo || 'Interesse Geral'} ({lead.repasse_bairro || 'N/A'})
                                 </span>
                               </div>
-                              <div className="lead-footer-premium">
-                                <div className="lead-broker-premium" title={`Atribuído a: ${lead.corretor_nome}`}>
-                                  <span>👤</span> {lead.corretor_nome ? lead.corretor_nome.split(' ')[0] : 'N/A'}
+                              <div className="lead-footer-premium" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                  <div className="lead-broker-premium" title={lead.corretor_nome ? `Atribuído a: ${lead.corretor_nome}` : 'Sem corretor responsável'}>
+                                    {lead.corretor_nome ? (
+                                      <span style={{ fontSize: '0.82rem' }}>👤 {lead.corretor_nome.split(' ')[0]}</span>
+                                    ) : (
+                                      <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.8rem' }}>⚠️ Sem Corretor</span>
+                                    )}
+                                  </div>
+                                  <select 
+                                    className="status-select-premium" 
+                                    value={lead.status}
+                                    onChange={(e) => changeLeadStatus(lead.id, e.target.value)}
+                                    style={{ padding: '2px 6px', fontSize: '0.8rem' }}
+                                  >
+                                    <option value="Novo">Novo</option>
+                                    <option value="Não respondeu">Não resp.</option>
+                                    <option value="Em negociação">Em negoc.</option>
+                                    <option value="Aprovado">Aprovado</option>
+                                    <option value="Vendido">Vendido</option>
+                                  </select>
                                 </div>
-                                <select 
-                                  className="status-select-premium" 
-                                  value={lead.status}
-                                  onChange={(e) => changeLeadStatus(lead.id, e.target.value)}
-                                >
-                                  <option value="Novo">Novo</option>
-                                  <option value="Não respondeu">Não resp.</option>
-                                  <option value="Em negociação">Em negoc.</option>
-                                  <option value="Aprovado">Aprovado</option>
-                                  <option value="Vendido">Vendido</option>
-                                </select>
+                                {!lead.corretor_id && (
+                                  <button
+                                    onClick={() => handleClaimLead(lead)}
+                                    className="btn btn-primary"
+                                    style={{ 
+                                      padding: '6px 10px', 
+                                      fontSize: '0.78rem', 
+                                      width: '100%', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'center', 
+                                      gap: '6px',
+                                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                                      borderColor: 'transparent',
+                                      borderRadius: '8px',
+                                      fontWeight: 600,
+                                      color: '#ffffff',
+                                      boxShadow: '0 4px 10px rgba(99, 102, 241, 0.15)'
+                                    }}
+                                  >
+                                    📥 Assumir Atendimento
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );

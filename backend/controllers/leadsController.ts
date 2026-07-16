@@ -115,7 +115,7 @@ export const getLeads = async (req: Request, res: Response): Promise<void> => {
     
     const params: any[] = [];
     if (isCorretor) {
-      queryText += ` WHERE l.corretor_id = $1 `;
+      queryText += ` WHERE l.corretor_id = $1 OR l.corretor_id IS NULL `;
       params.push(corretorId);
     }
     
