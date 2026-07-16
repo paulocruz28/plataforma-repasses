@@ -171,6 +171,10 @@ export const AdminPanel: React.FC = () => {
   const [repasseCorretor, setRepasseCorretor] = useState('');
   const [repasseStatus, setRepasseStatus] = useState('Disponível');
   const [repasseComissaoPct, setRepasseComissaoPct] = useState('5');
+  const [repasseParcelaConstrutora, setRepasseParcelaConstrutora] = useState('');
+  const [repasseParcelaCaixa, setRepasseParcelaCaixa] = useState('');
+  const [repasseSaldoConstrutora, setRepasseSaldoConstrutora] = useState('');
+  const [repasseBalao, setRepasseBalao] = useState('');
   const [savingRepasse, setSavingRepasse] = useState(false);
   
   // Controle de Visualização e Busca de Repasses (CRUD)
@@ -545,7 +549,11 @@ export const AdminPanel: React.FC = () => {
         descricao: repasseDescricao,
         status: repasseStatus,
         comissao_pct: repasseComissaoPct ? parseFloat(repasseComissaoPct) : 5.00,
-        corretor_id: repasseCorretor ? parseInt(repasseCorretor) : null
+        corretor_id: repasseCorretor ? parseInt(repasseCorretor) : null,
+        parcela_construtora: repasseParcelaConstrutora ? parseCurrencyToNumber(repasseParcelaConstrutora) : null,
+        parcela_caixa: repasseParcelaCaixa ? parseCurrencyToNumber(repasseParcelaCaixa) : null,
+        saldo_construtora: repasseSaldoConstrutora ? parseCurrencyToNumber(repasseSaldoConstrutora) : null,
+        balao: repasseBalao || null
       };
 
       if (editingRepasseId) {
@@ -570,6 +578,10 @@ export const AdminPanel: React.FC = () => {
       setRepasseCorretor('');
       setRepasseStatus('Disponível');
       setRepasseComissaoPct('5');
+      setRepasseParcelaConstrutora('');
+      setRepasseParcelaCaixa('');
+      setRepasseSaldoConstrutora('');
+      setRepasseBalao('');
       setEditingRepasseId(null);
       setShowRepasseForm(false);
       loadRepassesData();
@@ -1973,6 +1985,10 @@ export const AdminPanel: React.FC = () => {
                                       setRepasseCorretor(r.corretor_id ? r.corretor_id.toString() : '');
                                       setRepasseStatus(r.status || 'Disponível');
                                       setRepasseComissaoPct(r.comissao_pct ? r.comissao_pct.toString() : '5');
+                                      setRepasseParcelaConstrutora(r.parcela_construtora ? formatCurrencyInput(r.parcela_construtora.toString()) : '');
+                                      setRepasseParcelaCaixa(r.parcela_caixa ? formatCurrencyInput(r.parcela_caixa.toString()) : '');
+                                      setRepasseSaldoConstrutora(r.saldo_construtora ? formatCurrencyInput(r.saldo_construtora.toString()) : '');
+                                      setRepasseBalao(r.balao || '');
                                       setEditingRepasseId(r.id);
                                       setShowRepasseForm(true);
                                     }}
@@ -2174,6 +2190,64 @@ export const AdminPanel: React.FC = () => {
                         </label>
                       </div>
                     )}
+                  </div>
+
+                  {/* Campos Exclusivos para Corretores (Privados, não aparecem para clientes) */}
+                  <div style={{ marginTop: '24px', marginBottom: '24px', padding: '20px', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--accent-color)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🔒 Informações Internas (Visível Apenas para Corretores)
+                    </h3>
+                    
+                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div className="form-group">
+                        <label>Parcela Construtora</label>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          value={repasseParcelaConstrutora} 
+                          onChange={(e) => setRepasseParcelaConstrutora(formatCurrencyInput(e.target.value))} 
+                          placeholder="Ex: R$ 1.500,00" 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Parcela Caixa</label>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          value={repasseParcelaCaixa} 
+                          onChange={(e) => setRepasseParcelaCaixa(formatCurrencyInput(e.target.value))} 
+                          placeholder="Ex: R$ 850,00" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group">
+                        <label>Saldo Construtora</label>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          value={repasseSaldoConstrutora} 
+                          onChange={(e) => setRepasseSaldoConstrutora(formatCurrencyInput(e.target.value))} 
+                          placeholder="Ex: R$ 1.000,00" 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Balão</label>
+                        <select 
+                          className="form-control"
+                          value={repasseBalao}
+                          onChange={(e) => setRepasseBalao(e.target.value)}
+                        >
+                          <option value="">Nenhum Balão</option>
+                          <option value="1 balão">1 balão</option>
+                          <option value="2 balões">2 balões</option>
+                          <option value="3 balões">3 balões</option>
+                          <option value="4 balões">4 balões</option>
+                          <option value="5 balões">5 balões</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="form-group">
@@ -2810,6 +2884,40 @@ export const AdminPanel: React.FC = () => {
                           (parseFloat(selectedCalcRepasse.valor_chave.toString()) * ((selectedCalcRepasse.comissao_pct || parseFloat(comissaoCorretorPadrao)) / 100))
                         )}
                       </span>
+                    </div>
+                  )}
+                  {/* Informações Internas de Financiamento (apenas para corretores, visível neste painel) */}
+                  {(selectedCalcRepasse.parcela_construtora || selectedCalcRepasse.parcela_caixa || selectedCalcRepasse.saldo_construtora || selectedCalcRepasse.balao) && (
+                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(99, 102, 241, 0.04)', border: '1px solid rgba(99, 102, 241, 0.1)', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-color)', display: 'block', marginBottom: '8px' }}>
+                        🔒 Dados Internos de Financiamento
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.84rem' }}>
+                        {selectedCalcRepasse.parcela_construtora && (
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)' }}>Parcela Construtora:</span>{' '}
+                            <strong>{formatCurrency(parseFloat(selectedCalcRepasse.parcela_construtora.toString()))}</strong>
+                          </div>
+                        )}
+                        {selectedCalcRepasse.parcela_caixa && (
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)' }}>Parcela Caixa:</span>{' '}
+                            <strong>{formatCurrency(parseFloat(selectedCalcRepasse.parcela_caixa.toString()))}</strong>
+                          </div>
+                        )}
+                        {selectedCalcRepasse.saldo_construtora && (
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)' }}>Saldo Construtora:</span>{' '}
+                            <strong>{formatCurrency(parseFloat(selectedCalcRepasse.saldo_construtora.toString()))}</strong>
+                          </div>
+                        )}
+                        {selectedCalcRepasse.balao && (
+                          <div>
+                            <span style={{ color: 'var(--text-secondary)' }}>Balão:</span>{' '}
+                            <strong>{selectedCalcRepasse.balao}</strong>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

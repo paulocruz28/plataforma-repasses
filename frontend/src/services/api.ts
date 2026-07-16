@@ -17,6 +17,10 @@ export interface Repasse {
   corretor_telefone?: string;
   status: string;
   comissao_pct?: number;
+  parcela_construtora?: string | number;
+  parcela_caixa?: string | number;
+  saldo_construtora?: string | number;
+  balao?: string;
   data_criacao?: string;
 }
 

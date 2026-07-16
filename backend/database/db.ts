@@ -56,6 +56,10 @@ export const initDb = async (): Promise<void> => {
         corretor_id INTEGER REFERENCES corretores(id) ON DELETE SET NULL,
         status VARCHAR(50) DEFAULT 'Disponível',
         comissao_pct NUMERIC(4, 2) DEFAULT 5.00,
+        parcela_construtora NUMERIC(12, 2),
+        parcela_caixa NUMERIC(12, 2),
+        saldo_construtora NUMERIC(12, 2),
+        balao VARCHAR(50),
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -63,6 +67,10 @@ export const initDb = async (): Promise<void> => {
     // Migração automática e resiliente para adicionar comissao_pct se a tabela já existir
     await client.query(`
       ALTER TABLE repasses ADD COLUMN IF NOT EXISTS comissao_pct NUMERIC(4, 2) DEFAULT 5.00;
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS parcela_construtora NUMERIC(12, 2);
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS parcela_caixa NUMERIC(12, 2);
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS saldo_construtora NUMERIC(12, 2);
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS balao VARCHAR(50);
     `);
 
     // 3. Tabela de Leads
