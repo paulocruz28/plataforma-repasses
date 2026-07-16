@@ -92,12 +92,15 @@ export const createLead = async (req: Request, res: Response): Promise<any> => {
     const { rows: leadInserido } = await db.query(queryText, params);
 
     // Obter o nome do corretor para retornar no response
-    const corretorNome = corretores.find(c => c.id === corretorDestinoId)!.nome;
+    const corretorObj = corretorDestinoId ? corretores.find(c => c.id === corretorDestinoId) : null;
+    const corretorNome = corretorObj ? corretorObj.nome : null;
 
     res.status(201).json({
-      message: atribuicaoDireta 
-        ? 'Lead recebido e atribuído diretamente ao corretor responsável!' 
-        : 'Lead recebido e distribuído com sucesso na roleta!',
+      message: corretorDestinoId 
+        ? (atribuicaoDireta 
+            ? 'Lead recebido e atribuído diretamente ao corretor responsável!' 
+            : 'Lead recebido e distribuído com sucesso na roleta!')
+        : 'Lead recebido e cadastrado sem corretor atribuído!',
       lead: {
         ...leadInserido[0],
         corretor_nome: corretorNome
