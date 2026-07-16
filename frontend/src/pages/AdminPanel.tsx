@@ -89,6 +89,8 @@ export const AdminPanel: React.FC = () => {
   // Estados de Gerenciamento de Permissões (RBAC) dos Corretores
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
   const [selectedBrokerForPermissions, setSelectedBrokerForPermissions] = useState<any>(null);
+  const [showBrokerListingsModal, setShowBrokerListingsModal] = useState(false);
+  const [selectedBrokerForListings, setSelectedBrokerForListings] = useState<any>(null);
   const [brokerPermissions, setBrokerPermissions] = useState<any>({
     acesso_portfolio_geral: true,
     criacao_leads_manuais: true,
@@ -2490,6 +2492,16 @@ export const AdminPanel: React.FC = () => {
                                 )}
                                 <button 
                                   className="btn btn-secondary" 
+                                  style={{ padding: '6px 12px', fontSize: '0.85rem', color: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.2)' }}
+                                  onClick={() => {
+                                    setSelectedBrokerForListings(member);
+                                    setShowBrokerListingsModal(true);
+                                  }}
+                                >
+                                  Captações
+                                </button>
+                                <button 
+                                  className="btn btn-secondary" 
                                   style={{ padding: '6px 12px', fontSize: '0.85rem', color: member.ativo ? '#ef4444' : '#10b981', borderColor: 'rgba(0,0,0,0.1)' }}
                                   onClick={async () => {
                                     try {
@@ -2819,6 +2831,81 @@ export const AdminPanel: React.FC = () => {
                   style={{ minWidth: '120px' }}
                 >
                   {savingPermissions ? 'Salvando...' : 'Confirmar Ajustes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showBrokerListingsModal && selectedBrokerForListings && (
+          <div className="modal-backdrop active">
+            <div className="modal-content glass-panel" style={{ maxWidth: '800px', width: '95%', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Captações de {selectedBrokerForListings.nome}</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '2px' }}>
+                    Total de <b>{repasses.filter(r => r.corretor_id === selectedBrokerForListings.id).length}</b> imóveis cadastrados por este corretor.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowBrokerListingsModal(false)}
+                  style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div style={{ overflowY: 'auto', maxHeight: '50vh' }}>
+                {repasses.filter(r => r.corretor_id === selectedBrokerForListings.id).length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    <Building size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                    <p>Nenhuma captação registrada para este corretor.</p>
+                  </div>
+                ) : (
+                  <table className="table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                        <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Imóvel</th>
+                        <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Bairro</th>
+                        <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Valor da Chave</th>
+                        <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {repasses
+                        .filter(r => r.corretor_id === selectedBrokerForListings.id)
+                        .map(r => (
+                          <tr key={r.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '12px 8px', fontWeight: 600 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <img 
+                                  src={r.imagem_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=100'} 
+                                  alt={r.titulo} 
+                                  style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '6px' }}
+                                />
+                                <span style={{ fontSize: '0.88rem' }}>{r.titulo}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
+                            <td style={{ padding: '12px 8px', fontSize: '0.88rem', fontWeight: 600 }}>{formatCurrency(parseFloat(r.valor_chave.toString()))}</td>
+                            <td style={{ padding: '12px 8px' }}>
+                              <span className={`badge ${r.status === 'Disponível' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.76rem', padding: '3px 6px', borderRadius: '10px' }}>
+                                {r.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => setShowBrokerListingsModal(false)}
+                >
+                  Fechar
                 </button>
               </div>
             </div>

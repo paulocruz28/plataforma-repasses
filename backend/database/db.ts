@@ -140,14 +140,14 @@ export const initDb = async (): Promise<void> => {
         await client.query("DELETE FROM corretores WHERE email = 'gabriel@repasses.com' OR (nome = 'Gabriel Souza' AND role = 'admin')");
         await client.query(`
           UPDATE corretores 
-          SET nome = 'Rafael Sales', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
+          SET nome = 'Rafael Sales', nome_exibicao = 'Rafael Sales (RS)', role = 'admin', senha_hash = $1
           WHERE email = 'rafael@repasses.com';
         `, [hash]);
       } else {
         // Não existe rafael@repasses.com, atualiza gabriel@repasses.com para rafael@repasses.com
         await client.query(`
           UPDATE corretores 
-          SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', senha_hash = $1
+          SET nome = 'Rafael Sales', email = 'rafael@repasses.com', nome_exibicao = 'Rafael Sales (RS)', role = 'admin', senha_hash = $1
           WHERE email = 'gabriel@repasses.com' OR (role = 'admin' AND nome = 'Gabriel Souza');
         `, [hash]);
       }
