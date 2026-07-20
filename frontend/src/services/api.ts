@@ -21,6 +21,7 @@ export interface Repasse {
   parcela_caixa?: string | number;
   saldo_construtora?: string | number;
   balao?: string;
+  link_drive?: string;
   data_criacao?: string;
 }
 

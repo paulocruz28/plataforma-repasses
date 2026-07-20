@@ -175,9 +175,11 @@ export const AdminPanel: React.FC = () => {
   const [repasseParcelaCaixa, setRepasseParcelaCaixa] = useState('');
   const [repasseSaldoConstrutora, setRepasseSaldoConstrutora] = useState('');
   const [repasseBalao, setRepasseBalao] = useState('');
+  const [repasseLinkDrive, setRepasseLinkDrive] = useState('');
   const [savingRepasse, setSavingRepasse] = useState(false);
   
   // Controle de Visualização e Busca de Repasses (CRUD)
+  const [activeRepasseFilter, setActiveRepasseFilter] = useState<'Todos' | 'Disponível' | 'Reservado' | 'Aguardando Unidade' | 'Vendido'>('Todos');
   const [showRepasseForm, setShowRepasseForm] = useState(false);
   const [editingRepasseId, setEditingRepasseId] = useState<number | null>(null);
   const [searchRepasse, setSearchRepasse] = useState('');
@@ -553,7 +555,8 @@ export const AdminPanel: React.FC = () => {
         parcela_construtora: repasseParcelaConstrutora ? parseCurrencyToNumber(repasseParcelaConstrutora) : null,
         parcela_caixa: repasseParcelaCaixa ? parseCurrencyToNumber(repasseParcelaCaixa) : null,
         saldo_construtora: repasseSaldoConstrutora ? parseCurrencyToNumber(repasseSaldoConstrutora) : null,
-        balao: repasseBalao || null
+        balao: repasseBalao || null,
+        link_drive: repasseLinkDrive || null
       };
 
       if (editingRepasseId) {
@@ -582,6 +585,7 @@ export const AdminPanel: React.FC = () => {
       setRepasseParcelaCaixa('');
       setRepasseSaldoConstrutora('');
       setRepasseBalao('');
+      setRepasseLinkDrive('');
       setEditingRepasseId(null);
       setShowRepasseForm(false);
       loadRepassesData();
@@ -604,6 +608,45 @@ export const AdminPanel: React.FC = () => {
       loadRepassesData();
     } catch (err) {
       showToast('Erro ao excluir repasse.', 'danger');
+    }
+  };
+
+  // Reivindicar / Puxar repasse sem corretor
+  const handleClaimRepasse = async (r: Repasse) => {
+    if (!currentUser) {
+      showToast('Faça login para assumir este imóvel.', 'warning');
+      return;
+    }
+
+    if (!window.confirm(`Deseja se tornar o corretor responsável pelo imóvel "${r.titulo}"?`)) {
+      return;
+    }
+
+    try {
+      await api.put(`/repasses/${r.id}`, {
+        titulo: r.titulo,
+        bairro: r.bairro,
+        valor_chave: r.valor_chave,
+        saldo_devedor: r.saldo_devedor,
+        parcela: r.parcela,
+        quartos: r.quartos,
+        varanda: r.varanda,
+        area: r.area,
+        imagem_url: r.imagem_url,
+        descricao: r.descricao,
+        status: r.status,
+        comissao_pct: r.comissao_pct,
+        corretor_id: currentUser.id,
+        parcela_construtora: r.parcela_construtora,
+        parcela_caixa: r.parcela_caixa,
+        saldo_construtora: r.saldo_construtora,
+        balao: r.balao,
+        link_drive: r.link_drive
+      });
+      showToast('Você assumiu a responsabilidade por este imóvel!', 'success');
+      loadRepassesData();
+    } catch (err) {
+      showToast('Erro ao assumir responsabilidade pelo imóvel.', 'danger');
     }
   };
 
@@ -1898,6 +1941,50 @@ export const AdminPanel: React.FC = () => {
                   </button>
                 </div>
 
+                {/* Abas do Estoque */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', flexWrap: 'wrap' }}>
+                  {(['Todos', 'Disponível', 'Reservado', 'Aguardando Unidade', 'Vendido'] as const).map(statusFilter => {
+                    let count = 0;
+                    if (statusFilter === 'Todos') {
+                      count = repasses.length;
+                    } else {
+                      count = repasses.filter(r => r.status === statusFilter).length;
+                    }
+                    return (
+                      <button
+                        key={statusFilter}
+                        onClick={() => setActiveRepasseFilter(statusFilter)}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          fontSize: '0.84rem',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer',
+                          backgroundColor: activeRepasseFilter === statusFilter ? 'var(--accent-color)' : 'rgba(99, 102, 241, 0.05)',
+                          color: activeRepasseFilter === statusFilter ? '#ffffff' : 'var(--text-secondary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {statusFilter === 'Todos' ? '🌐 Todos' : statusFilter === 'Disponível' ? '🟢 Disponíveis' : statusFilter === 'Reservado' ? '🟡 Reservados' : statusFilter === 'Aguardando Unidade' ? '🔵 Aguardando Unidade' : '🔴 Vendidos'}
+                        <span style={{ 
+                          fontSize: '0.74rem', 
+                          background: activeRepasseFilter === statusFilter ? 'rgba(255,255,255,0.2)' : 'rgba(99, 102, 241, 0.1)', 
+                          color: activeRepasseFilter === statusFilter ? '#ffffff' : 'var(--accent-color)',
+                          padding: '2px 6px', 
+                          borderRadius: '10px',
+                          fontWeight: 800
+                        }}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Filtro de Busca */}
                 <div style={{ position: 'relative', marginBottom: '24px' }}>
                   <Search size={18} style={{ position: 'absolute', left: '14px', top: '14px', color: 'var(--text-muted)' }} />
@@ -1933,6 +2020,7 @@ export const AdminPanel: React.FC = () => {
                       </thead>
                       <tbody>
                         {repasses
+                          .filter(r => activeRepasseFilter === 'Todos' || r.status === activeRepasseFilter)
                           .filter(r => 
                             r.titulo.toLowerCase().includes(searchRepasse.toLowerCase()) || 
                             r.bairro.toLowerCase().includes(searchRepasse.toLowerCase())
@@ -1946,7 +2034,12 @@ export const AdminPanel: React.FC = () => {
                                     alt={r.titulo} 
                                     style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                                   />
-                                  <span style={{ fontSize: '0.95rem' }}>{r.titulo}</span>
+                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '0.95rem' }}>{r.titulo}</span>
+                                    <span style={{ fontSize: '0.78rem', color: r.corretor_id ? 'var(--text-secondary)' : '#a855f7', fontWeight: r.corretor_id ? 500 : 700, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      {r.corretor_id ? `👤 Corretor: ${r.corretor_nome}` : '🔓 Livre (Sem corretor responsável)'}
+                                    </span>
+                                  </div>
                                 </div>
                               </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-secondary)' }}>{r.bairro}</td>
@@ -1962,12 +2055,54 @@ export const AdminPanel: React.FC = () => {
                               </td>
                               <td style={{ padding: '16px', fontSize: '0.92rem', color: 'var(--text-muted)' }}>{formatCurrency(parseFloat(r.saldo_devedor.toString()))}</td>
                               <td style={{ padding: '16px' }}>
-                                <span className={`badge ${r.status === 'Disponível' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                                <span 
+                                  className="badge" 
+                                  style={{ 
+                                    fontSize: '0.8rem', 
+                                    padding: '4px 8px', 
+                                    borderRadius: '12px', 
+                                    fontWeight: 600,
+                                    backgroundColor: r.status === 'Disponível' ? 'rgba(16, 185, 129, 0.1)' :
+                                                     r.status === 'Reservado' ? 'rgba(245, 158, 11, 0.15)' :
+                                                     r.status === 'Aguardando Unidade' ? 'rgba(59, 130, 246, 0.15)' :
+                                                     r.status === 'Vendido' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(107, 114, 128, 0.15)',
+                                    color: r.status === 'Disponível' ? '#10b981' :
+                                           r.status === 'Reservado' ? '#d97706' :
+                                           r.status === 'Aguardando Unidade' ? '#2563eb' :
+                                           r.status === 'Vendido' ? '#dc2626' : '#4b5563',
+                                    border: r.status === 'Disponível' ? '1px solid rgba(16, 185, 129, 0.2)' :
+                                            r.status === 'Reservado' ? '1px solid rgba(245, 158, 11, 0.2)' :
+                                            r.status === 'Aguardando Unidade' ? '1px solid rgba(59, 130, 246, 0.2)' :
+                                            r.status === 'Vendido' ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(107, 114, 128, 0.2)'
+                                  }}
+                                >
                                   {r.status}
                                 </span>
                               </td>
                               <td style={{ padding: '16px', textAlign: 'right' }}>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  {!r.corretor_id && (
+                                    <button 
+                                      className="btn btn-primary" 
+                                      style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', background: 'linear-gradient(135deg, #a855f7, #6366f1)', borderColor: 'transparent' }}
+                                      onClick={() => handleClaimRepasse(r)}
+                                      title="Se tornar o corretor responsável por este imóvel"
+                                    >
+                                      📥 Puxar p/ Mim
+                                    </button>
+                                  )}
+                                  {r.link_drive && (
+                                    <a 
+                                      href={r.link_drive} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="btn btn-secondary" 
+                                      style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.2)', textDecoration: 'none' }}
+                                      title="Abrir pasta no Google Drive"
+                                    >
+                                      📂 Drive
+                                    </a>
+                                  )}
                                   <button 
                                     className="btn btn-secondary" 
                                     style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}
@@ -1989,6 +2124,7 @@ export const AdminPanel: React.FC = () => {
                                       setRepasseParcelaCaixa(r.parcela_caixa ? formatCurrencyInput(r.parcela_caixa.toString()) : '');
                                       setRepasseSaldoConstrutora(r.saldo_construtora ? formatCurrencyInput(r.saldo_construtora.toString()) : '');
                                       setRepasseBalao(r.balao || '');
+                                      setRepasseLinkDrive(r.link_drive || '');
                                       setEditingRepasseId(r.id);
                                       setShowRepasseForm(true);
                                     }}
@@ -2150,46 +2286,32 @@ export const AdminPanel: React.FC = () => {
                     </div>
                   </div>
                     
-                  <div className="form-row">
-                    {editingRepasseId ? (
-                      <>
-                        <div className="form-group">
-                          <label>Status do Imóvel</label>
-                          <select 
-                            className="form-control" 
-                            value={repasseStatus} 
-                            onChange={(e) => setRepasseStatus(e.target.value)}
-                          >
-                            <option value="Disponível">Disponível</option>
-                            <option value="Vendido">Vendido</option>
-                            <option value="Indisponível">Indisponível</option>
-                          </select>
-                        </div>
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
-                          <label className="toggle-switch">
-                            <input 
-                              type="checkbox" 
-                              checked={repasseVaranda} 
-                              onChange={(e) => setRepasseVaranda(e.target.checked)} 
-                            />
-                            <span className="switch-slider"></span>
-                            <span>Possui Varanda</span>
-                          </label>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '12px' }}>
-                        <label className="toggle-switch">
-                          <input 
-                            type="checkbox" 
-                            checked={repasseVaranda} 
-                            onChange={(e) => setRepasseVaranda(e.target.checked)} 
-                          />
-                          <span className="switch-slider"></span>
-                          <span>Possui Varanda</span>
-                        </label>
-                      </div>
-                    )}
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'center' }}>
+                    <div className="form-group">
+                      <label>Status do Imóvel</label>
+                      <select 
+                        className="form-control" 
+                        value={repasseStatus} 
+                        onChange={(e) => setRepasseStatus(e.target.value)}
+                      >
+                        <option value="Disponível">Disponível</option>
+                        <option value="Reservado">Reservado</option>
+                        <option value="Aguardando Unidade">Aguardando Unidade</option>
+                        <option value="Vendido">Vendido</option>
+                        <option value="Indisponível">Indisponível</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', height: '100%', paddingTop: '20px' }}>
+                      <label className="toggle-switch">
+                        <input 
+                          type="checkbox" 
+                          checked={repasseVaranda} 
+                          onChange={(e) => setRepasseVaranda(e.target.checked)} 
+                        />
+                        <span className="switch-slider"></span>
+                        <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Possui Varanda</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Campos Exclusivos para Corretores (Privados, não aparecem para clientes) */}
@@ -2258,6 +2380,17 @@ export const AdminPanel: React.FC = () => {
                       value={repasseImagem} 
                       onChange={(e) => setRepasseImagem(e.target.value)} 
                       placeholder="Ex: https://images.unsplash.com/..." 
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Link da Pasta no Google Drive (Mídias/Fotos/Vídeos)</label>
+                    <input 
+                      type="url" 
+                      className="form-control" 
+                      value={repasseLinkDrive} 
+                      onChange={(e) => setRepasseLinkDrive(e.target.value)} 
+                      placeholder="Ex: https://drive.google.com/drive/folders/..." 
                     />
                   </div>
 
@@ -2807,7 +2940,7 @@ export const AdminPanel: React.FC = () => {
               zIndex: 9999,
               padding: '20px'
             }}>
-            <div className="glass-panel" style={{
+            <div className="glass-panel printable-area" style={{
               width: '100%',
               maxWidth: '550px',
               padding: '30px',
@@ -2927,7 +3060,14 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => window.print()} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.88rem' }}
+                >
+                  <Printer size={16} /> Imprimir Ficha Técnica / Salvar PDF
+                </button>
                 <button className="btn btn-primary" onClick={() => setSelectedCalcRepasse(null)} style={{ minWidth: '120px' }}>
                   Fechar
                 </button>

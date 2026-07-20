@@ -162,7 +162,7 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
   try {
     const { 
       titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id,
-      parcela_construtora, parcela_caixa, saldo_construtora, balao
+      parcela_construtora, parcela_caixa, saldo_construtora, balao, link_drive
     } = req.body;
     
     if (!titulo || !bairro || !valor_chave || !saldo_devedor) {
@@ -170,8 +170,8 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
     }
 
     const queryText = `
-      INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id, parcela_construtora, parcela_caixa, saldo_construtora, balao)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      INSERT INTO repasses (titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, comissao_pct, corretor_id, parcela_construtora, parcela_caixa, saldo_construtora, balao, link_drive)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
     const params = [
@@ -190,7 +190,8 @@ export const createRepasse = async (req: Request, res: Response): Promise<any> =
       parcela_construtora ? parseFloat(parcela_construtora) : null,
       parcela_caixa ? parseFloat(parcela_caixa) : null,
       saldo_construtora ? parseFloat(saldo_construtora) : null,
-      balao || null
+      balao || null,
+      link_drive || null
     ];
 
     const { rows } = await db.query(queryText, params);
@@ -218,7 +219,7 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
     const { id } = req.params;
     const { 
       titulo, bairro, valor_chave, saldo_devedor, parcela, quartos, varanda, area, imagem_url, descricao, status, comissao_pct, corretor_id,
-      parcela_construtora, parcela_caixa, saldo_construtora, balao
+      parcela_construtora, parcela_caixa, saldo_construtora, balao, link_drive
     } = req.body;
 
     if (!titulo || !bairro || !valor_chave || !saldo_devedor) {
@@ -234,8 +235,8 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
       UPDATE repasses 
       SET titulo = $1, bairro = $2, valor_chave = $3, saldo_devedor = $4, parcela = $5, 
           quartos = $6, varanda = $7, area = $8, imagem_url = $9, descricao = $10, status = $11, comissao_pct = $12, corretor_id = $13,
-          parcela_construtora = $14, parcela_caixa = $15, saldo_construtora = $16, balao = $17
-      WHERE id = $18
+          parcela_construtora = $14, parcela_caixa = $15, saldo_construtora = $16, balao = $17, link_drive = $18
+      WHERE id = $19
       RETURNING *
     `;
     const params = [
@@ -256,6 +257,7 @@ export const updateRepasse = async (req: Request, res: Response): Promise<any> =
       parcela_caixa ? parseFloat(parcela_caixa) : null,
       saldo_construtora ? parseFloat(saldo_construtora) : null,
       balao || null,
+      link_drive || null,
       id
     ];
 

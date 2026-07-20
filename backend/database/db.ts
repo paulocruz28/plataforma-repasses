@@ -60,6 +60,7 @@ export const initDb = async (): Promise<void> => {
         parcela_caixa NUMERIC(12, 2),
         saldo_construtora NUMERIC(12, 2),
         balao VARCHAR(50),
+        link_drive VARCHAR(500),
         data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -71,6 +72,7 @@ export const initDb = async (): Promise<void> => {
       ALTER TABLE repasses ADD COLUMN IF NOT EXISTS parcela_caixa NUMERIC(12, 2);
       ALTER TABLE repasses ADD COLUMN IF NOT EXISTS saldo_construtora NUMERIC(12, 2);
       ALTER TABLE repasses ADD COLUMN IF NOT EXISTS balao VARCHAR(50);
+      ALTER TABLE repasses ADD COLUMN IF NOT EXISTS link_drive VARCHAR(500);
     `);
 
     // 3. Tabela de Leads
